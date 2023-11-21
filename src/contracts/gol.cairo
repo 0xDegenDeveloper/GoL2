@@ -3,8 +3,10 @@ use starknet::ContractAddress;
 #[starknet::interface]
 trait IGoL2<TContractState> {
     /// read
-    fn get_game_state(self: @TContractState, game_id: felt252, generation: u256) -> felt252;
-    fn get_cell_array(self: @TContractState, game_id: felt252, generation: u256) -> Array<felt252>;
+    fn get_game_state(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
+    fn get_cell_array(
+        self: @TContractState, game_id: felt252, generation: felt252
+    ) -> Array<felt252>;
 }
 
 #[starknet::contract]
@@ -30,7 +32,7 @@ mod GoL2 {
 
     #[storage]
     struct Storage {
-        s_games: LegacyMap<(felt252, u256), felt252>, // (game_id, generation) -> state
+        s_games: LegacyMap<(felt252, felt252), felt252>, // (game_id, generation) -> state
         s_generations: LegacyMap<felt252, u256>, // game_id -> generation
         #[substorage(v0)]
         constants: constants_component::Storage,
@@ -46,12 +48,12 @@ mod GoL2 {
     /// External functions  
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
-        fn get_game_state(self: @ContractState, game_id: felt252, generation: u256) -> felt252 {
+        fn get_game_state(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
             self.s_games.read((game_id, generation))
         }
 
         fn get_cell_array(
-            self: @ContractState, game_id: felt252, generation: u256
+            self: @ContractState, game_id: felt252, generation: felt252
         ) -> Array<felt252> {
             /// state as int
             let state: u256 = self.get_game_state(game_id, generation).into();
@@ -80,14 +82,37 @@ mod GoL2 {
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
-        EventStruct: EventStruct,
+        GameCreated: GameCreated,
+        GameEvolved: GameEvolved,
+        CellRevived: CellRevived,
         ConstantsEvent: constants_component::Event
     }
 
     #[derive(Drop, starknet::Event)]
-    struct EventStruct {
+    struct GameCreated {
         #[key]
-        x: ContractAddress,
-        y: bool,
+        user_id: ContractAddress,
+        #[key]
+        game_id: felt252,
+        state: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct GameEvolved {
+        #[key]
+        user_id: ContractAddress,
+        #[key]
+        game_id: felt252,
+        state: felt252,
+        generation: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct CellRevived {
+        #[key]
+        user_id: ContractAddress,
+        generation: felt252,
+        cell_index: felt252,
+        state: felt252,
     }
 }
