@@ -15,8 +15,8 @@ trait IConstants<TContractState> {
 
 #[starknet::component]
 mod constants_component {
-    use starknet::ContractAddress;
-    use starknet::get_caller_address;
+    use starknet::{ContractAddress, get_caller_address};
+    use gol2::utils::math::raise_to_power;
 
     #[storage]
     struct Storage {
@@ -30,6 +30,7 @@ mod constants_component {
         SHIFT: u256, //2^128
         LOW_ARRAY_LEN: u8, //128
         HIGH_ARRAY_LEN: u8, //97
+        x: felt252,
     }
 
     #[event]
@@ -38,10 +39,10 @@ mod constants_component {
         ConstantsInitialized: ConstantsInitialized
     }
 
+    /// needed ? 
     #[derive(Drop, starknet::Event)]
     struct ConstantsInitialized {
         DIM: u8,
-    /// needed ? 
     }
 
     #[embeddable_as(Constants)]
@@ -79,17 +80,13 @@ mod constants_component {
         fn HIGH_ARRAY_LEN(self: @ComponentState<TContractState>) -> u8 {
             self.HIGH_ARRAY_LEN.read()
         }
-    // write
-    // fn x(ref self: ComponentState<TContractState>, x: felt252) {
-    //     self.x.write(x);
-    // }
     }
 
     #[generate_trait]
     impl InternalImpl<
         TContractState, +HasComponent<TContractState>
     > of InternalTrait<TContractState> {
-        fn initializer(ref self: ComponentState<TContractState>, x: felt252) {
+        fn initializer(ref self: ComponentState<TContractState>) {
             self.DIM.write(15);
             self.FIRST_ROW_INDEX.write(0);
             self.LAST_ROW_INDEX.write(14);
@@ -97,7 +94,9 @@ mod constants_component {
             self.FIRST_COL_INDEX.write(0);
             self.LAST_COL_INDEX.write(14);
             self.LAST_COL_CELL_INDEX.write(14);
-            self.SHIFT.write(0x100000000000000000000000000000000); //2^128
+            let shift = raise_to_power(2, 128);
+            assert(shift == 0x100000000000000000000000000000000, 'raise_to_power() failed');
+            self.SHIFT.write(shift); //2^128
             self.LOW_ARRAY_LEN.write(128);
             self.HIGH_ARRAY_LEN.write(97);
         // self.emit(ConstantsInitialized { DIM: 15, x: x });

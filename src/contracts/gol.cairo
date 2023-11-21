@@ -3,11 +3,8 @@ use starknet::ContractAddress;
 #[starknet::interface]
 trait IGoL2<TContractState> {
     /// read
-    // fn DIM(self: @TContractState) -> u8;
     fn get_game_state(self: @TContractState, game_id: felt252, generation: u256) -> felt252;
     fn get_cell_array(self: @TContractState, game_id: felt252, generation: u256) -> Array<felt252>;
-/// write
-// fn write(ref self: TContractState, x: felt252);
 }
 
 #[starknet::contract]
@@ -23,26 +20,19 @@ mod GoL2 {
     use option::{Option, OptionTrait};
     use traits::{Into, TryInto};
     use zeroable::Zeroable;
-
     use gol2::utils::constants::constants_component;
-    use gol2::utils::constants::IConstants;
 
-    use debug::PrintTrait;
-
-    /// Components
+    /// Constants Component
     component!(path: constants_component, storage: constants, event: ConstantsEvent);
-
     #[abi(embed_v0)]
     impl ConstantsImpl = constants_component::Constants<ContractState>;
-
     impl ConstantsInternalImpl = constants_component::InternalImpl<ContractState>;
 
     /// Constructor
     #[constructor]
     fn constructor(ref self: ContractState, game_state: felt252) {
-        // self.s_DIM.write(15);
+        self.constants.initializer();
         self.s_games.write((game_state, 0), game_state);
-        self.constants.initializer(12)
     }
 
     /// External functions  
