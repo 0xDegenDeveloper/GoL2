@@ -3,7 +3,7 @@ use starknet::ContractAddress;
 #[starknet::interface]
 trait IGoL2<TContractState> {
     /// read
-    fn DIM(self: @TContractState) -> u8;
+    // fn DIM(self: @TContractState) -> u8;
     fn get_game_state(self: @TContractState, game_id: felt252, generation: u256) -> felt252;
     fn get_cell_array(self: @TContractState, game_id: felt252, generation: u256) -> Array<felt252>;
 /// write
@@ -24,19 +24,33 @@ mod GoL2 {
     use traits::{Into, TryInto};
     use zeroable::Zeroable;
 
+    use gol2::utils::constants::constants_component;
+    use gol2::utils::constants::IConstants;
+
     use debug::PrintTrait;
 
+    /// Components
+    component!(path: constants_component, storage: constants, event: ConstantsEvent);
+
+    #[abi(embed_v0)]
+    impl ConstantsImpl = constants_component::Constants<ContractState>;
+
+    impl ConstantsInternalImpl = constants_component::InternalImpl<ContractState>;
+
+    /// Constructor
     #[constructor]
     fn constructor(ref self: ContractState, game_state: felt252) {
-        self.s_DIM.write(15);
+        // self.s_DIM.write(15);
         self.s_games.write((game_state, 0), game_state);
+        self.constants.initializer(12)
     }
 
+    /// External functions  
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
-        fn DIM(self: @ContractState) -> u8 {
-            self.s_DIM.read()
-        }
+        // fn DIM(self: @ContractState) -> u8 {
+        //     self.s_DIM.read()
+        // }
 
         fn get_game_state(self: @ContractState, game_id: felt252, generation: u256) -> felt252 {
             self.s_games.read((game_id, generation))
@@ -73,7 +87,7 @@ mod GoL2 {
     struct Storage {
         /// Game Board
         // grid
-        s_DIM: u8, // 15
+        // s_DIM: u8, // 15
         s_FIRST_ROW_INDEX: u8, // 0
         s_LAST_ROW_INDEX: u8, // 14
         s_FIRST_COL_INDEX: u8, // 0 
@@ -84,6 +98,8 @@ mod GoL2 {
         // game states ? 
         s_games: LegacyMap<(felt252, u256), felt252>, // (game_id, generation) -> state
         s_generations: LegacyMap<felt252, u256>, // game_id -> generation
+        #[substorage(v0)]
+        constants: constants_component::Storage,
     }
 
 
@@ -107,16 +123,17 @@ mod GoL2 {
             cell_array
         }
     }
-// #[event]
-// #[derive(Drop, starknet::Event)]
-// enum Event {
-//     EventStruct: EventStruct,
-// }
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        EventStruct: EventStruct,
+        ConstantsEvent: constants_component::Event
+    }
 
-// #[derive(Drop, starknet::Event)]
-// struct EventStruct {
-//     #[key]
-//     x: ContractAddress,
-//     y: bool,
-// }
+    #[derive(Drop, starknet::Event)]
+    struct EventStruct {
+        #[key]
+        x: ContractAddress,
+        y: bool,
+    }
 }

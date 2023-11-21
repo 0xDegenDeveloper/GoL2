@@ -1,1 +1,1 @@
-mod gol;
+mod constants;
