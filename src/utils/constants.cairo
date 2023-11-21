@@ -30,7 +30,6 @@ mod constants_component {
         SHIFT: u256, //2^128
         LOW_ARRAY_LEN: u8, //128
         HIGH_ARRAY_LEN: u8, //97
-        x: felt252,
     }
 
     #[event]
@@ -95,7 +94,7 @@ mod constants_component {
             self.LAST_COL_INDEX.write(14);
             self.LAST_COL_CELL_INDEX.write(14);
             let shift = raise_to_power(2, 128);
-            assert(shift == 0x100000000000000000000000000000000, 'raise_to_power() failed');
+            assert(shift == 0x100000000000000000000000000000000, 'Invalid 2^128');
             self.SHIFT.write(shift); //2^128
             self.LOW_ARRAY_LEN.write(128);
             self.HIGH_ARRAY_LEN.write(97);

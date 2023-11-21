@@ -28,6 +28,14 @@ mod GoL2 {
     impl ConstantsImpl = constants_component::Constants<ContractState>;
     impl ConstantsInternalImpl = constants_component::InternalImpl<ContractState>;
 
+    #[storage]
+    struct Storage {
+        s_games: LegacyMap<(felt252, u256), felt252>, // (game_id, generation) -> state
+        s_generations: LegacyMap<felt252, u256>, // game_id -> generation
+        #[substorage(v0)]
+        constants: constants_component::Storage,
+    }
+
     /// Constructor
     #[constructor]
     fn constructor(ref self: ContractState, game_state: felt252) {
@@ -38,10 +46,6 @@ mod GoL2 {
     /// External functions  
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
-        // fn DIM(self: @ContractState) -> u8 {
-        //     self.s_DIM.read()
-        // }
-
         fn get_game_state(self: @ContractState, game_id: felt252, generation: u256) -> felt252 {
             self.s_games.read((game_id, generation))
         }
@@ -72,47 +76,7 @@ mod GoL2 {
         }
     }
 
-
-    #[storage]
-    struct Storage {
-        /// Game Board
-        // grid
-        // s_DIM: u8, // 15
-        s_FIRST_ROW_INDEX: u8, // 0
-        s_LAST_ROW_INDEX: u8, // 14
-        s_FIRST_COL_INDEX: u8, // 0 
-        s_LAST_COL_INDEX: u8, // 14
-        // cells
-        s_LAST_ROW_CELL_INDEX: u8, // 210 (dim^2 - dim)
-        s_LAST_COL_CELL_INDEX: u8, // 14 
-        // game states ? 
-        s_games: LegacyMap<(felt252, u256), felt252>, // (game_id, generation) -> state
-        s_generations: LegacyMap<felt252, u256>, // game_id -> generation
-        #[substorage(v0)]
-        constants: constants_component::Storage,
-    }
-
-
-    #[derive(Serde, Copy, Drop, starknet::Store)]
-    struct GameState {
-        generation: u256,
-        state: felt252, // felt representation of the game state (felt252 -> u256 -> bit array for cell map) <0,0,0,0,g,a,m,e,s,t,a,t,e>
-    }
-
-    trait GameStateTrait {
-        fn into_cell_array(self: GameState) -> Array<bool>;
-    }
-
-
-    impl GameStateImpl of GameStateTrait {
-        fn into_cell_array(self: GameState) -> Array<bool> {
-            let state_as_int: u256 = self.state.into();
-            let bit = state_as_int > 0x1;
-            let mut cell_array = array![];
-            // let state_as_int: u256 = state_as_int.into();
-            cell_array
-        }
-    }
+    /// Events 
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
