@@ -21,7 +21,7 @@ fn deploy_contract(
     name: felt252
 ) -> (ContractAddress, IGoL2SafeDispatcher, IConstantsSafeDispatcher) {
     let contract = declare(name);
-    let params = array!['initial game state'];
+    let params = array![];
     let contract_address = contract.deploy(@params).unwrap();
     let GoL2 = IGoL2SafeDispatcher { contract_address };
     let Constants = IConstantsSafeDispatcher { contract_address };

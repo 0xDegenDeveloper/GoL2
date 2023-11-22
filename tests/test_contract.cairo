@@ -21,9 +21,9 @@ fn deploy_contract(
     name: felt252
 ) -> (ContractAddress, IGoL2SafeDispatcher, IConstantsSafeDispatcher) {
     let contract = declare(name);
-    let params = array!['0fGameState'];
+    // let params = array![];
 
-    let contract_address = contract.deploy(@params).unwrap();
+    let contract_address = contract.deploy(@array![]).unwrap();
     let GoL2 = IGoL2SafeDispatcher { contract_address };
     let Constants = IConstantsSafeDispatcher { contract_address };
 
@@ -32,8 +32,49 @@ fn deploy_contract(
 /// Tests
 
 // #[test]
-// fn test_constructor() {
+// fn test_view_game() {
 //     let (_, GoL2, _) = deploy_contract('GoL2');
+
+//     'testing'.print();
+
+//     /// acorn as felt
+//     let f = 39132555273291485155644251043342963441664;
+
+//     let f_int: u256 = f.into();
+//     'acorn felt'.print();
+//     f.print();
+//     'acorn int low'.print();
+//     f_int.low.print(); // 0x1000...
+//     'acorn int high'.print();
+//     f_int.high.print(); // 0x73...
+
+//     let mut cell_array = array![];
+//     let mut mask: u256 = 0x1;
+//     let mut i: usize = 0;
+
+//     loop {
+//         if i >= 225 {
+//             break ();
+//         }
+//         if f_int & mask != 0 {
+//             cell_array.append(1);
+//         } else {
+//             cell_array.append(0);
+//         }
+//         mask = mask * 2;
+//         i += 1;
+//     };
+
+//     let mut i: usize = 0;
+//     'cell_array'.print();
+//     loop {
+//         if i >= 225 {
+//             break ();
+//         }
+//         let cell = *cell_array.at(i);
+//         cell.print();
+//         i += 1;
+//     };
 // }
 // #[test]
 // fn test_game_state() {
