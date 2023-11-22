@@ -1,33 +1,26 @@
 use array::ArrayTrait;
+use debug::PrintTrait;
 use core::integer;
 use option::{Option, OptionTrait};
 use starknet::ContractAddress;
 use traits::{Into, TryInto};
 use zeroable::Zeroable;
-
 use gol2::utils::math::raise_to_power;
 
-use debug::PrintTrait;
+/// The game board is a 15x15 grid of cells:
+/// | 0 | 1 | 2 | 3 | 4 |...|14 |
+/// |15 |16 |17 |18 |19 |...|29 |
+/// |...|...|...|...|...|...|...|
+/// |210|211|212|213|214|...|224|
 
+/// Cells can be alive or dead, imagined as a bit array:
+/// [0, 0, 1, 1, 0, 1, 0, 1, ..., 1] 
+///  ^-- 0th cell is dead         ^-- 224th cell is alive
 
-/// [0,1,0,...] -> 0b010... -> felt252
-/// unneeded, pack_game handles this logic
-// fn pack_cell(cells: Array<felt252>) -> felt252 { 
-//     let mut result: felt252 = 0;
-//     let mut i = 225;
-//     let mut mask = 0x1;
-//     loop {
-//         if i < 1 {
-//             break ();
-//         }
-//         result += *cells.at(i - 1) * mask;
-//         mask * 2;
-//         i -= 1;
-//     };
-//     result
-// }
+/// This bit array represents a 225 bit integer, which is stored in the contract as a felt252
+/// Cell array: [1, 1, 1, 0, 0, 0,..., 0, 0] translates to binary: 0b00...000111, which is felt: 7
 
-/// 'gamestate' -> [0,1,0,...]
+/// Creates a cell array from a game state
 fn unpack_game(game: felt252) -> Array<felt252> {
     let game_as_int: u256 = game.into();
     let mut cell_array = array![];
@@ -42,12 +35,13 @@ fn unpack_game(game: felt252) -> Array<felt252> {
         } else {
             cell_array.append(0);
         }
-        mask = mask * 2;
+        mask *= 2;
         i += 1;
     };
     cell_array
 }
 
+/// Creates a game state from a cell array
 fn pack_game(cells: Array<felt252>) -> felt252 {
     let mut result: felt252 = 0;
     let mut i = 0;
@@ -57,12 +51,13 @@ fn pack_game(cells: Array<felt252>) -> felt252 {
             break ();
         }
         result += *cells.at(i) * mask;
-        mask = mask * 2;
+        mask *= 2;
         i += 1;
     };
     result
 }
 
+/// Toggles a cell index alive, returns new game state
 fn revive_cell(cell_index: felt252, current_state: felt252) -> felt252 {
     let enabled_bit: u256 = raise_to_power(2, cell_index.try_into().unwrap());
     let state_as_int: u256 = current_state.into();
