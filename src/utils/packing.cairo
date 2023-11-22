@@ -7,6 +7,8 @@ use zeroable::Zeroable;
 
 use gol2::utils::math::raise_to_power;
 
+use debug::PrintTrait;
+
 
 /// [0,1,0,...] -> 0b010... -> felt252
 /// unneeded, pack_game handles this logic
@@ -65,6 +67,5 @@ fn revive_cell(cell_index: felt252, current_state: felt252) -> felt252 {
     let enabled_bit: u256 = raise_to_power(2, cell_index.try_into().unwrap());
     let state_as_int: u256 = current_state.into();
     let updated: u256 = state_as_int | enabled_bit;
-    let packed_game_as_int: u256 = state_as_int + updated;
-    packed_game_as_int.try_into().unwrap()
+    updated.try_into().unwrap()
 }

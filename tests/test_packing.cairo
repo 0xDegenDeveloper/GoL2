@@ -145,3 +145,11 @@ fn test_maximum_packed_game() {
         packed_game_as_int.high == 158456325028528675187087900671, 'Packed game incorrect (high)'
     );
 }
+
+#[test]
+fn test_revive_cell() {
+    let state: felt252 = 39132555273291485155644251043342963441664;
+    /// revive first cell in array (top left, first cell in array, lowest bit)
+    let revived: felt252 = revive_cell(0, state);
+    assert(revived == state + 1, 'Revived cell incorrect');
+}
