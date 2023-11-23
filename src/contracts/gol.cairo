@@ -26,8 +26,8 @@ mod GoL2 {
     use traits::{Into, TryInto};
     use zeroable::Zeroable;
     use gol2::utils::{
-        constants::constants_component, math::raise_to_power,
-        packing::{pack_game, unpack_game, revive_cell}
+        life_rules::{evaluate_rounds, apply_rounds, get_adjacent}, constants::{constants_component},
+        math::{raise_to_power}, packing::{pack_game, unpack_game, revive_cell},
     };
 
     /// Constants Component
@@ -116,12 +116,14 @@ mod GoL2 {
 
 
     #[generate_trait]
-    impl InternalImpl of SomethingTrait {
-        fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
-            self.save_game(game_state, 1, game_state);
-            self.save_generation_id(game_state, 1);
-            self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
-        }
+    impl HelperImpl of HelperTrait {
+        fn pay() {}
+
+        fn reward_user() {}
+
+        fn ensure_user() {}
+
+        fn evolve_game() {}
 
         fn save_game(
             ref self: ContractState, game_id: felt252, generation: felt252, state: felt252
@@ -131,14 +133,6 @@ mod GoL2 {
 
         fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
             self.current_generation.write(game_id, generation);
-        }
-
-        fn assert_valid_new_game(self: @ContractState, game: felt252) { //
-        // assert game does not exist
-        // split felt into (high, _)
-        // assert high bits do not exceed 97
-
-        // assert(game_state < 2 * *225, 'Invalid game state');
         }
 
         fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
@@ -161,6 +155,32 @@ mod GoL2 {
         fn get_generation(self: @ContractState, game_id: felt252) -> felt252 {
             self.current_generation.read(game_id)
         }
+
+        /// Creator Mode 
+
+        fn assert_valid_new_game(self: @ContractState, game: felt252) { //
+        // assert game does not exist
+        // split felt into (high, _)
+        // assert high bits do not exceed 97
+
+        // assert(game_state < 2 * *225, 'Invalid game state');
+        }
+
+        fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
+            self.save_game(game_state, 1, game_state);
+            self.save_generation_id(game_state, 1);
+            self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
+        }
+
+        /// Infinite Mode
+
+        fn get_last_state() {}
+
+        fn assert_valid_cell_index() {}
+
+        /// Write 
+
+        fn activate_cell() {}
     }
 
 

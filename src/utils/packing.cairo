@@ -20,6 +20,23 @@ use gol2::utils::math::raise_to_power;
 /// This bit array represents a 225 bit integer, which is stored in the contract as a felt252
 /// Cell array: [1, 1, 1, 0, 0, 0,..., 0, 0] translates to binary: 0b00...000111, which is felt: 7
 
+fn pack_cells(cells: Array<felt252>) -> felt252 {
+    let mut result: felt252 = 0;
+    let mut i = 0;
+    let mut mask = 0x1;
+    let len = cells.clone().len();
+    loop {
+        if i >= len {
+            break ();
+        }
+        result += *cells.at(i) * mask;
+        mask *= 2;
+        i += 1;
+    };
+    result
+}
+
+
 /// Creates a cell array from a game state
 fn unpack_game(game: felt252) -> Array<felt252> {
     let game_as_int: u256 = game.into();
@@ -43,20 +60,11 @@ fn unpack_game(game: felt252) -> Array<felt252> {
 
 /// Creates a game state from a cell array
 fn pack_game(cells: Array<felt252>) -> felt252 {
-    let mut result: felt252 = 0;
-    let mut i = 0;
-    let mut mask = 0x1;
-    loop {
-        if i >= 225 {
-            break ();
-        }
-        result += *cells.at(i) * mask;
-        mask *= 2;
-        i += 1;
-    };
-    result
+    pack_cells(cells)
 }
 
+
+/// * move to game logic module (& tests)
 /// Toggles a cell index alive, returns new game state
 fn revive_cell(cell_index: felt252, current_state: felt252) -> felt252 {
     let enabled_bit: u256 = raise_to_power(2, cell_index.try_into().unwrap());
