@@ -2,6 +2,20 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IGoL2<TContractState> {
+    // Constants 
+    fn DIM(self: @TContractState) -> u32;
+    fn FIRST_ROW_INDEX(self: @TContractState) -> u32; //0
+    fn LAST_ROW_INDEX(self: @TContractState) -> u32; //14
+    fn LAST_ROW_CELL_INDEX(self: @TContractState) -> u32; //210 (DIM^2 - DIM) (bottom left corner)
+    fn FIRST_COL_INDEX(self: @TContractState) -> u32; //0
+    fn LAST_COL_INDEX(self: @TContractState) -> u32; //14
+    fn LAST_COL_CELL_INDEX(self: @TContractState) -> u32; //14 (DIM - 1) (top right corner)
+    fn SHIFT(self: @TContractState) -> u256; //2^128
+    fn LOW_ARRAY_LEN(self: @TContractState) -> u32; //128
+    fn HIGH_ARRAY_LEN(self: @TContractState) -> u32; //97 
+
+    /// ****************** ///
+
     // read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
@@ -26,30 +40,41 @@ mod GoL2 {
     use traits::{Into, TryInto};
     use zeroable::Zeroable;
     use gol2::utils::{
-        life_rules::{evaluate_rounds, apply_rounds, get_adjacent}, constants::{constants_component},
-        math::{raise_to_power}, packing::{pack_game, unpack_game, revive_cell},
+        life_rules::{evaluate_rounds, apply_rounds, get_adjacent}, math::{raise_to_power},
+        packing::{pack_game, unpack_game, revive_cell},
     };
 
     /// Constants Component
-    component!(path: constants_component, storage: constants, event: ConstantsEvent);
-    #[abi(embed_v0)]
-    impl ConstantsImpl = constants_component::Constants<ContractState>;
-    impl ConstantsInternalImpl = constants_component::InternalImpl<ContractState>;
+    // component!(path: constants_component, storage: constants, event: ConstantsEvent);
+    // #[abi(embed_v0)]
+    // impl ConstantsImpl = constants_component::Constants<ContractState>;
+    // impl ConstantsInternalImpl = constants_component::InternalImpl<ContractState>;
+
+    const DIM: u32 = 15;
+    const FIRST_ROW_INDEX: u32 = 0;
+    const LAST_ROW_INDEX: u32 = 14; // DIM - 1
+    const LAST_ROW_CELL_INDEX: u32 = 210; // DIM^2 - 1
+    const FIRST_COL_INDEX: u32 = 0;
+    const LAST_COL_INDEX: u32 = 14;
+    const LAST_COL_CELL_INDEX: u32 = 14;
+    const SHIFT: u256 = 0x100000000000000000000000000000000; // 2^128
+    const LOW_ARRAY_LEN: u32 = 128;
+    const HIGH_ARRAY_LEN: u32 = 97;
+
 
     #[storage]
     struct Storage {
         /// Game State
         stored_game: LegacyMap<(felt252, felt252), felt252>, // game_id -> generation -> state
         current_generation: LegacyMap<felt252, felt252>, // game_id -> generation
-        /// Constants
-        #[substorage(v0)]
-        constants: constants_component::Storage,
+    /// Constants
+    // #[substorage(v0)]
+    // constants: constants_component::Storage,
     }
 
     /// Constructor
     #[constructor]
-    fn constructor(ref self: ContractState) {
-        self.constants.initializer();
+    fn constructor(ref self: ContractState) { // self.constants.initializer();
     /// Per old contract 
     // create_new_game(game_state=INFINITE_GAME_GENESIS, user_id=caller);
     // ERC20 initializer
@@ -59,36 +84,38 @@ mod GoL2 {
     /// External functions  
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
-        // fn get_game_state(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
-        //     self.s_games.read((game_id, generation))
-        // }
-
-        // fn get_cell_array(
-        //     self: @ContractState, game_id: felt252, generation: felt252
-        // ) -> Array<felt252> {
-        //     /// state as int
-        //     let state: u256 = self.get_game_state(game_id, generation).into();
-        //     /// array to fill with cell states [0,1,0,1]
-        //     let mut cell_array = array![];
-        //     let mut mask: u256 = 0x1;
-        //     let mut i = 0;
-        //     loop {
-        //         if (i > 225_u256) {
-        //             break ();
-        //         }
-        //         if state & mask > 0 {
-        //             cell_array.append(1);
-        //         } else {
-        //             cell_array.append(0);
-        //         }
-
-        //         mask = mask * 2;
-        //         i += 1;
-        //     };
-        //     cell_array
-        // }
-
-        /// read
+        /// Constants
+        fn DIM(self: @ContractState) -> u32 {
+            DIM
+        }
+        fn FIRST_ROW_INDEX(self: @ContractState) -> u32 {
+            FIRST_ROW_INDEX
+        }
+        fn LAST_ROW_INDEX(self: @ContractState) -> u32 {
+            LAST_ROW_INDEX
+        }
+        fn LAST_ROW_CELL_INDEX(self: @ContractState) -> u32 {
+            LAST_ROW_CELL_INDEX
+        }
+        fn FIRST_COL_INDEX(self: @ContractState) -> u32 {
+            FIRST_COL_INDEX
+        }
+        fn LAST_COL_INDEX(self: @ContractState) -> u32 {
+            LAST_COL_INDEX
+        }
+        fn LAST_COL_CELL_INDEX(self: @ContractState) -> u32 {
+            LAST_COL_CELL_INDEX
+        }
+        fn SHIFT(self: @ContractState) -> u256 {
+            SHIFT
+        }
+        fn LOW_ARRAY_LEN(self: @ContractState) -> u32 {
+            LOW_ARRAY_LEN
+        }
+        fn HIGH_ARRAY_LEN(self: @ContractState) -> u32 {
+            HIGH_ARRAY_LEN
+        }
+        /// Read
         fn view_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
             self.stored_game.read((game_id, generation))
         }
@@ -97,7 +124,7 @@ mod GoL2 {
             self.current_generation.read(game_id)
         }
 
-        /// write 
+        /// Write 
         fn create(ref self: ContractState, game_state: felt252) {
             // * ensure_user
             assert(!get_caller_address().is_zero(), 'Caller address is zero');
@@ -191,7 +218,7 @@ mod GoL2 {
         GameCreated: GameCreated,
         GameEvolved: GameEvolved,
         CellRevived: CellRevived,
-        ConstantsEvent: constants_component::Event,
+    // ConstantsEvent: constants_component::Event,
     }
 
     #[derive(Drop, starknet::Event)]

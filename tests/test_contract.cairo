@@ -6,10 +6,7 @@ use traits::{Into, TryInto};
 use zeroable::Zeroable;
 
 use gol2::{
-    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait},
-    utils::{
-        math::raise_to_power, constants::{IConstantsSafeDispatcher, IConstantsSafeDispatcherTrait}
-    }
+    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait}, utils::{math::raise_to_power,}
 };
 
 use snforge_std::{declare, ContractClassTrait};
@@ -17,20 +14,28 @@ use snforge_std::{declare, ContractClassTrait};
 use debug::PrintTrait;
 
 /// Setup
-fn deploy_contract(
-    name: felt252
-) -> (ContractAddress, IGoL2SafeDispatcher, IConstantsSafeDispatcher) {
+fn deploy_contract(name: felt252) -> IGoL2SafeDispatcher {
     let contract = declare(name);
-    // let params = array![];
-
     let contract_address = contract.deploy(@array![]).unwrap();
-    let GoL2 = IGoL2SafeDispatcher { contract_address };
-    let Constants = IConstantsSafeDispatcher { contract_address };
-
-    (contract_address, GoL2, Constants)
+    IGoL2SafeDispatcher { contract_address }
 }
-/// Tests
 
+/// Tests
+#[test]
+fn test_constants() {
+    let GoL2 = deploy_contract('GoL2');
+
+    assert(GoL2.DIM().unwrap() == 15, 'Invalid DIM');
+    assert(GoL2.FIRST_ROW_INDEX().unwrap() == 0, 'Invalid FIRST_ROW_INDEX');
+    assert(GoL2.LAST_ROW_INDEX().unwrap() == 14, 'Invalid LAST_ROW_INDEX');
+    assert(GoL2.LAST_ROW_CELL_INDEX().unwrap() == 210, 'Invalid LAST_ROW_CELL_INDEX');
+    assert(GoL2.FIRST_COL_INDEX().unwrap() == 0, 'Invalid FIRST_COL_INDEX');
+    assert(GoL2.LAST_COL_INDEX().unwrap() == 14, 'Invalid LAST_COL_INDEX');
+    assert(GoL2.LAST_COL_CELL_INDEX().unwrap() == 14, 'Invalid LAST_COL_CELL_INDEX');
+    assert(GoL2.SHIFT().unwrap() == raise_to_power(2, 128), 'Invalid SHIFT');
+    assert(GoL2.LOW_ARRAY_LEN().unwrap() == 128, 'Invalid LOW_ARRAY_LEN');
+    assert(GoL2.HIGH_ARRAY_LEN().unwrap() == 97, 'Invalid HIGH_ARRAY_LEN');
+}
 // #[test]
 // fn test_view_game() {
 //     let (_, GoL2, _) = deploy_contract('GoL2');
