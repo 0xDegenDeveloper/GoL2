@@ -6,7 +6,15 @@ use traits::{Into, TryInto};
 use zeroable::Zeroable;
 
 use gol2::{
-    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait}, utils::{math::raise_to_power,}
+    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait},
+    utils::{
+        math::raise_to_power,
+        constants::{
+            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
+            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, SHIFT, LOW_ARRAY_LEN,
+            HIGH_ARRAY_LEN
+        }
+    }
 };
 
 use snforge_std::{declare, ContractClassTrait};
@@ -25,16 +33,16 @@ fn deploy_contract(name: felt252) -> IGoL2SafeDispatcher {
 fn test_constants() {
     let GoL2 = deploy_contract('GoL2');
 
-    assert(GoL2.DIM().unwrap() == 15, 'Invalid DIM');
-    assert(GoL2.FIRST_ROW_INDEX().unwrap() == 0, 'Invalid FIRST_ROW_INDEX');
-    assert(GoL2.LAST_ROW_INDEX().unwrap() == 14, 'Invalid LAST_ROW_INDEX');
-    assert(GoL2.LAST_ROW_CELL_INDEX().unwrap() == 210, 'Invalid LAST_ROW_CELL_INDEX');
-    assert(GoL2.FIRST_COL_INDEX().unwrap() == 0, 'Invalid FIRST_COL_INDEX');
-    assert(GoL2.LAST_COL_INDEX().unwrap() == 14, 'Invalid LAST_COL_INDEX');
-    assert(GoL2.LAST_COL_CELL_INDEX().unwrap() == 14, 'Invalid LAST_COL_CELL_INDEX');
-    assert(GoL2.SHIFT().unwrap() == raise_to_power(2, 128), 'Invalid SHIFT');
-    assert(GoL2.LOW_ARRAY_LEN().unwrap() == 128, 'Invalid LOW_ARRAY_LEN');
-    assert(GoL2.HIGH_ARRAY_LEN().unwrap() == 97, 'Invalid HIGH_ARRAY_LEN');
+    assert(DIM == 15, 'Invalid DIM');
+    assert(FIRST_ROW_INDEX == 0, 'Invalid FIRST_ROW_INDEX');
+    assert(LAST_ROW_INDEX == 14, 'Invalid LAST_ROW_INDEX');
+    assert(LAST_ROW_CELL_INDEX == 210, 'Invalid LAST_ROW_CELL_INDEX');
+    assert(FIRST_COL_INDEX == 0, 'Invalid FIRST_COL_INDEX');
+    assert(LAST_COL_INDEX == 14, 'Invalid LAST_COL_INDEX');
+    assert(LAST_COL_CELL_INDEX == 14, 'Invalid LAST_COL_CELL_INDEX');
+    assert(SHIFT == raise_to_power(2, 128), 'Invalid SHIFT');
+    assert(LOW_ARRAY_LEN == 128, 'Invalid LOW_ARRAY_LEN');
+    assert(HIGH_ARRAY_LEN == 97, 'Invalid HIGH_ARRAY_LEN');
 }
 // #[test]
 // fn test_view_game() {
