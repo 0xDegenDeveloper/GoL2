@@ -1,14 +1,14 @@
 const INFINITE_GAME_GENESIS: felt252 = 39132555273291485155644251043342963441664;
-const DIM: u32 = 15;
-const FIRST_ROW_INDEX: u32 = 0;
-const LAST_ROW_INDEX: u32 = 14; // DIM - 1
-const LAST_ROW_CELL_INDEX: u32 = 210; // DIM^2 - 1
-const FIRST_COL_INDEX: u32 = 0;
-const LAST_COL_INDEX: u32 = 14;
-const LAST_COL_CELL_INDEX: u32 = 14;
+const DIM: usize = 15;
+const FIRST_ROW_INDEX: usize = 0;
+const LAST_ROW_INDEX: usize = 14; // DIM - 1
+const LAST_ROW_CELL_INDEX: usize = 210; // DIM^2 - 1
+const FIRST_COL_INDEX: usize = 0;
+const LAST_COL_INDEX: usize = 14;
+const LAST_COL_CELL_INDEX: usize = 14;
 const SHIFT: u256 = 0x100000000000000000000000000000000; // 2^128
-const LOW_ARRAY_LEN: u32 = 128;
-const HIGH_ARRAY_LEN: u32 = 97;
+const LOW_ARRAY_LEN: usize = 128;
+const HIGH_ARRAY_LEN: usize = 97;
 
 const CREATE_CREDIT_REQUIREMENT: felt252 = 10;
 const GIVE_LIFE_CREDIT_REQUIREMENT: felt252 = 1;

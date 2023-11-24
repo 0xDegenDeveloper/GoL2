@@ -25,7 +25,7 @@ mod GoL2 {
     use traits::{Into, TryInto};
     use zeroable::Zeroable;
     use gol2::utils::{
-        life_rules::{evaluate_rounds, apply_rounds, get_adjacent}, math::{raise_to_power},
+        life_rules::{evaluate_rounds, apply_rules, get_adjacent}, math::{raise_to_power},
         packing::{pack_game, unpack_game, revive_cell},
         constants::{
             INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,

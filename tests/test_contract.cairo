@@ -44,6 +44,18 @@ fn test_constants() {
     assert(LOW_ARRAY_LEN == 128, 'Invalid LOW_ARRAY_LEN');
     assert(HIGH_ARRAY_LEN == 97, 'Invalid HIGH_ARRAY_LEN');
 }
+
+fn unsigned_div_mod(x: u256, y: u256) {}
+
+// fn unsigned_div_rem()
+
+#[test]
+fn test_print() { // let x: felt252 = 90 % 10;
+    // let y: felt252 = 90 / 10;
+    // x.print();
+    // y.print();
+    assert(true, 'adf')
+}
 // #[test]
 // fn test_view_game() {
 //     let (_, GoL2, _) = deploy_contract('GoL2');
