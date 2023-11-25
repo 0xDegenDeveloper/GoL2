@@ -181,8 +181,12 @@ mod GoL2 {
             let game_as_int: u256 = game.into();
             let high = game_as_int.high;
 
-            assert(high.into() <= raise_to_power(2, 97), 'Invalid game');
-            assert(game.into() < (raise_to_power(2, 224) - 1), 'Invalid game');
+            assert(
+                high.into() < raise_to_power(2, HIGH_ARRAY_LEN.into()), 'Invalid game'
+            ); /// max game (high bits) is 97 bits all 1s => 2^97 - 1
+            assert(
+                game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Invalid game'
+            ); /// max game is 225 bits all 1s => 2^225 - 1
         }
 
         /// done
@@ -241,7 +245,6 @@ mod GoL2 {
         GameCreated: GameCreated,
         GameEvolved: GameEvolved,
         CellRevived: CellRevived,
-    // ConstantsEvent: constants_component::Event,
     }
 
     #[derive(Drop, starknet::Event)]

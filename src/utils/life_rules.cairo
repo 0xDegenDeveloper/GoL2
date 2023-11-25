@@ -8,8 +8,7 @@ use gol2::utils::constants::{
 
 fn evaluate_rounds(rounds: usize, cells: Array<felt252>) -> Array<felt252> {
     let mut i = 0;
-    let mut pending_states = cells.clone(); // omit clone ? 
-
+    let mut pending_states = cells.clone(); // omit clone ?
     loop {
         if i >= rounds {
             break ();
@@ -25,12 +24,13 @@ fn evaluate_rounds(rounds: usize, cells: Array<felt252>) -> Array<felt252> {
 fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     let mut pending_states = array![];
     let mut i = cell_states.len();
+    let end = cell_states.len();
 
     loop {
         if i == 0 {
             break ();
         } else {
-            let cell_idx: usize = 225 - i;
+            let cell_idx: usize = end - i;
             let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(cell_idx);
 
             let score = *cell_states[L]

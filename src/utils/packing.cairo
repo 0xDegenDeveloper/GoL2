@@ -5,7 +5,7 @@ use option::{Option, OptionTrait};
 use starknet::ContractAddress;
 use traits::{Into, TryInto};
 use zeroable::Zeroable;
-use gol2::utils::math::raise_to_power;
+use gol2::utils::{math::raise_to_power, constants::{DIM}};
 
 /// The game board is a 15x15 grid of cells:
 /// | 0 | 1 | 2 | 3 | 4 |...|14 |
@@ -43,8 +43,9 @@ fn unpack_game(game: felt252) -> Array<felt252> {
     let mut cell_array = array![];
     let mut mask: u256 = 0x1;
     let mut i: usize = 0;
+    let end = DIM * DIM;
     loop {
-        if i >= 225 {
+        if i >= end {
             break ();
         }
         if game_as_int & mask != 0 {
