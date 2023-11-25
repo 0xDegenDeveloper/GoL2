@@ -95,7 +95,7 @@ fn test_pack_game_acorn() {
                 acorn.append(0);
             }
 
-            /// Check unpacked matches acorn (done in this loop to reduce steps)
+            /// Check unpacked matches acorn (done in this loop to fit steps in 1 test)
             assert(*unpacked.at(i) == *acorn.at(i), 'Array mismatch');
             i += 1;
         }
@@ -135,6 +135,68 @@ fn test_maximum_packed_game() {
     assert(
         packed_game_as_int.high == 158456325028528675187087900671, 'Packed game incorrect (high)'
     );
+}
+
+#[test]
+fn test_maximum_unpacked_game() {
+    let game_id: felt252 =
+        53919893334301279589334030174039261347274288845081144962207220498431; // 2^225 - 1
+    let mut unpacked_game: Array<felt252> = unpack_game(game_id);
+    assert(unpacked_game.len() == 225, 'Unpacked game incorrect length');
+    loop {
+        let cell = unpacked_game.pop_front();
+        if cell.is_none() {
+            break ();
+        } else {
+            assert(cell.unwrap() == 1, 'Unpacked game incorrect');
+        }
+    };
+}
+
+#[test]
+#[should_panic(expected: ('Invalid cell array length',))]
+#[test]
+fn test_overloaded_packed_game() {
+    let mut game: Array<felt252> = array![];
+    let mut i: usize = 0;
+    loop {
+        if i >= 226 {
+            break ();
+        } else {
+            game.append(1);
+        }
+        i += 1;
+    };
+
+    /// Max game state as felt
+    let packed_game: felt252 = pack_game(game);
+}
+
+
+#[test]
+#[should_panic(expected: ('Invalid cell array length',))]
+#[test]
+fn test_underloaded_packed_game() {
+    let mut game: Array<felt252> = array![];
+    let mut i: usize = 0;
+    loop {
+        if i >= 224 {
+            break ();
+        } else {
+            game.append(1);
+        }
+        i += 1;
+    };
+
+    /// Max game state as felt
+    let packed_game: felt252 = pack_game(game);
+}
+
+#[test]
+#[should_panic(expected: ('Invalid game state (too large)',))]
+fn test_overloaded_unpacked_game() {
+    let game_id: felt252 = 53919893334301279589334030174039261347274288845081144962207220498431 + 1;
+    let mut unpacked_game: Array<felt252> = unpack_game(game_id);
 }
 
 #[test]

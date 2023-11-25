@@ -177,15 +177,18 @@ mod GoL2 {
         /// * done (check this against div_mod in og)
         fn assert_valid_new_game(self: @ContractState, game: felt252) { //
             self.assert_game_does_not_exist(game);
-            // assert high bits do not exceed 97
             let game_as_int: u256 = game.into();
             let high = game_as_int.high;
 
             assert(
-                high.into() < raise_to_power(2, HIGH_ARRAY_LEN.into()), 'Invalid game'
+                game_as_int < raise_to_power(2, (DIM * DIM).into()), 'Invalid game'
+            ); /// max game is 225 bits all 1s => 2^225 - 1
+
+            assert(
+                high.into() < raise_to_power(2, HIGH_ARRAY_LEN.into()), 'Invalid game2'
             ); /// max game (high bits) is 97 bits all 1s => 2^97 - 1
             assert(
-                game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Invalid game'
+                game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Invalid game3'
             ); /// max game is 225 bits all 1s => 2^225 - 1
         }
 

@@ -40,6 +40,7 @@ fn pack_cells(cells: Array<felt252>) -> felt252 {
 /// Creates a cell array from a game state
 fn unpack_game(game: felt252) -> Array<felt252> {
     let game_as_int: u256 = game.into();
+    assert(game_as_int < raise_to_power(2, (DIM * DIM).into()), 'Invalid game state (too large)');
     let mut cell_array = array![];
     let mut mask: u256 = 0x1;
     let mut i: usize = 0;
@@ -56,11 +57,13 @@ fn unpack_game(game: felt252) -> Array<felt252> {
         mask *= 2;
         i += 1;
     };
+    assert(cell_array.len() == DIM * DIM, 'Invalid cell array length');
     cell_array
 }
 
 /// Creates a game state from a cell array
 fn pack_game(cells: Array<felt252>) -> felt252 {
+    assert(cells.len() == DIM * DIM, 'Invalid cell array length');
     pack_cells(cells)
 }
 
