@@ -104,7 +104,7 @@ mod GoL2 {
         /// done
         fn ensure_user(self: @ContractState) -> ContractAddress {
             let caller = get_caller_address();
-            assert(!caller.is_zero(), 'User not authenticated');
+            assert(caller.is_non_zero(), 'User not authenticated');
             caller
         }
 

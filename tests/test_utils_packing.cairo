@@ -14,12 +14,18 @@ use gol2::{
 
 #[test]
 fn test_pack_cells() {
-    let cells = array![0, 0, 0, 0, 1, 0, 0, 0, 0, 0];
+    let cells = array![0];
     let packed = pack_cells(cells);
-    assert(packed == 16, 'Packed cells invalid');
-    let cells = array![0, 0, 0, 1, 0, 0, 1]; // 8 + 64 = 72 
+    assert(packed == 0, 'Packed cells invalid');
+    let cells = array![1];
     let packed = pack_cells(cells);
-    assert(packed == 72, 'Packed cells invalid')
+    assert(packed == 1, 'Packed cells invalid1');
+    let cells = array![0, 0, 0, 0, 1, 0, 0, 0, 0];
+    let packed = pack_cells(cells);
+    assert(packed == 16, 'Packed cells invalid2');
+    let cells = array![1, 0, 0, 1, 1, 0, 1]; // 1 + 8 + 16 + 64 = 89
+    let packed = pack_cells(cells);
+    assert(packed == 89, 'Packed cells invalid3')
 }
 
 #[test]
@@ -155,7 +161,6 @@ fn test_maximum_unpacked_game() {
 
 #[test]
 #[should_panic(expected: ('Invalid cell array length',))]
-#[test]
 fn test_overloaded_packed_game() {
     let mut game: Array<felt252> = array![];
     let mut i: usize = 0;
@@ -175,7 +180,6 @@ fn test_overloaded_packed_game() {
 
 #[test]
 #[should_panic(expected: ('Invalid cell array length',))]
-#[test]
 fn test_underloaded_packed_game() {
     let mut game: Array<felt252> = array![];
     let mut i: usize = 0;

@@ -14,8 +14,8 @@ use gol2::utils::{math::raise_to_power, constants::{DIM}};
 /// |210|211|212|213|214|...|224|
 
 /// Cells can be alive or dead, imagined as a bit array:
-/// [0, 0, 1, 1, 0, 1, 0, 1, ..., 1] 
-///  ^-- 0th cell is dead         ^-- 224th cell is alive
+/// [1, 1, 1, 0, 0, 0, 0, 0, ..., 0] 
+///  ^-- 0th cell is dead         ^-- 224th cell is dead
 
 /// This bit array represents a 225 bit integer, which is stored in the contract as a felt252
 /// Cell array: [1, 1, 1, 0, 0, 0,..., 0, 0] translates to binary: 0b00...000111, which is felt: 7

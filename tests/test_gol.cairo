@@ -12,7 +12,7 @@ use gol2::{
         constants::{
             INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
             FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, SHIFT, LOW_ARRAY_LEN,
-            HIGH_ARRAY_LEN
+            HIGH_ARRAY_LEN, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT
         }
     }
 };
@@ -31,30 +31,26 @@ fn deploy_contract(name: felt252) -> IGoL2SafeDispatcher {
 /// Tests
 #[test]
 fn test_constants() {
-    let GoL2 = deploy_contract('GoL2');
+    assert(
+        INFINITE_GAME_GENESIS == 39132555273291485155644251043342963441664,
+        'Wrong INFINITE_GAME_GENESIS'
+    );
+    assert(DIM == 15, 'Wrong DIM');
+    assert(FIRST_ROW_INDEX + FIRST_COL_INDEX == DIM - DIM, 'Wrong FIRST_ROW/COL_INDEX');
+    assert(LAST_ROW_INDEX == DIM - 1 && LAST_COL_INDEX == DIM - 1, 'Wrong LAST_ROW/COL_INDEX');
+    assert(LAST_ROW_CELL_INDEX == DIM * DIM - DIM, 'Wrong LAST_ROW_CELL_INDEX');
+    assert(LAST_COL_CELL_INDEX == DIM - 1, 'Wrong LAST_COL_CELL_INDEX');
+    assert(SHIFT == raise_to_power(2, 128), 'Wrong SHIFT');
 
-    assert(DIM == 15, 'Invalid DIM');
-    assert(FIRST_ROW_INDEX == 0, 'Invalid FIRST_ROW_INDEX');
-    assert(LAST_ROW_INDEX == 14, 'Invalid LAST_ROW_INDEX');
-    assert(LAST_ROW_CELL_INDEX == 210, 'Invalid LAST_ROW_CELL_INDEX');
-    assert(FIRST_COL_INDEX == 0, 'Invalid FIRST_COL_INDEX');
-    assert(LAST_COL_INDEX == 14, 'Invalid LAST_COL_INDEX');
-    assert(LAST_COL_CELL_INDEX == 14, 'Invalid LAST_COL_CELL_INDEX');
-    assert(SHIFT == raise_to_power(2, 128), 'Invalid SHIFT');
-    assert(LOW_ARRAY_LEN == 128, 'Invalid LOW_ARRAY_LEN');
-    assert(HIGH_ARRAY_LEN == 97, 'Invalid HIGH_ARRAY_LEN');
-}
+    /// 225 1's -> 97 1's + 128 1's
+    let max_game: u256 = raise_to_power(2, (DIM * DIM).into()) - 1;
+    let high = max_game.high;
+    let low = max_game.low;
 
-fn unsigned_div_mod(x: u256, y: u256) {}
-
-// fn unsigned_div_rem()
-
-#[test]
-fn test_print() { // let x: felt252 = 90 % 10;
-    // let y: felt252 = 90 / 10;
-    // x.print();
-    // y.print();
-    assert(true, 'adf')
+    assert(high.into() == raise_to_power(2, HIGH_ARRAY_LEN.into()) - 1, 'Wrong HIGH_ARRAY_LEN');
+    assert(low.into() == raise_to_power(2, LOW_ARRAY_LEN.into()) - 1, 'Wrong LOW_ARRAY_LEN');
+    assert(CREATE_CREDIT_REQUIREMENT == 10, 'Wrong CREATE_CREDIT_REQUIREMENT');
+    assert(GIVE_LIFE_CREDIT_REQUIREMENT == 1, 'Wrong GIVE_LIFE_CREDIT_RE...');
 }
 // #[test]
 // fn test_view_game() {

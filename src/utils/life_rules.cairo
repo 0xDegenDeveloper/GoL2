@@ -6,23 +6,20 @@ use gol2::utils::constants::{
     LAST_ROW_INDEX
 };
 
-fn evaluate_rounds(rounds: usize, cells: Array<felt252>) -> Array<felt252> {
+fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt252> {
     let mut i = 0;
-    let mut pending_states = cells.clone(); // omit clone ?
     loop {
-        if i >= rounds {
+        if rounds == 0 {
             break ();
-        } else {
-            pending_states = apply_rules(pending_states.clone());
         }
-        i += 1;
+        cells = apply_rules(cells);
+        rounds -= 1;
     };
-
-    pending_states
+    cells
 }
 
 fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
-    let mut pending_states = array![];
+    let mut evolution = array![];
     let mut i = cell_states.len();
     let end = cell_states.len();
 
@@ -48,22 +45,22 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
                 /// With good neighbours
                 if (score - 2) * (score - 3) == 0 {
                     /// Live
-                    pending_states.append(1);
+                    evolution.append(1);
                 } else {
-                    pending_states.append(0);
+                    evolution.append(0);
                 }
             } else {
                 if score == 3 {
-                    pending_states.append(1);
+                    evolution.append(1);
                 } else {
-                    pending_states.append(0);
+                    evolution.append(0);
                 }
             }
         }
         i -= 1;
     };
 
-    array![]
+    evolution
 }
 
 fn get_adjacent(cell_idx: usize) -> (usize, usize, usize, usize, usize, usize, usize, usize) {
@@ -79,14 +76,14 @@ fn get_adjacent(cell_idx: usize) -> (usize, usize, usize, usize, usize, usize, u
     /// LU U RU
     /// L  .  R
     /// LD D RD
-    let mut L = '_';
-    let mut R = '_';
-    let mut U = '_';
-    let mut D = '_';
-    let mut LU = '_';
-    let mut RU = '_';
-    let mut LD = '_';
-    let mut RD = '_';
+    let mut L = 226;
+    let mut R = 226;
+    let mut U = 226;
+    let mut D = 226;
+    let mut LU = 226;
+    let mut RU = 226;
+    let mut LD = 226;
+    let mut RD = 226;
 
     if col == FIRST_COL_INDEX {
         /// Cell is on left, and needs to wrap.
@@ -129,14 +126,14 @@ fn get_adjacent(cell_idx: usize) -> (usize, usize, usize, usize, usize, usize, u
     }
 
     assert(
-        L != '_'
-            && R != '_'
-            && U != '_'
-            && D != '_'
-            && LU != '_'
-            && RU != '_'
-            && LD != '_'
-            && RD != '_',
+        L != 226
+            && R != 226
+            && U != 226
+            && D != 226
+            && LU != 226
+            && RU != 226
+            && LD != 226
+            && RD != 226,
         'Invalid neighbor calculations'
     );
 
