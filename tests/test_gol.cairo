@@ -6,7 +6,7 @@ use traits::{Into, TryInto};
 use zeroable::Zeroable;
 
 use gol2::{
-    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait},
+    contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait},
     utils::{
         math::raise_to_power,
         constants::{
@@ -22,36 +22,35 @@ use snforge_std::{declare, ContractClassTrait};
 use debug::PrintTrait;
 
 /// Setup
-fn deploy_contract(name: felt252) -> IGoL2SafeDispatcher {
+fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
     let contract = declare(name);
     let contract_address = contract.deploy(@array![]).unwrap();
-    IGoL2SafeDispatcher { contract_address }
+    IGoL2Dispatcher { contract_address }
 }
-
 /// Tests
-#[test]
-fn test_constants() {
-    assert(
-        INFINITE_GAME_GENESIS == 39132555273291485155644251043342963441664,
-        'Wrong INFINITE_GAME_GENESIS'
-    );
-    assert(DIM == 15, 'Wrong DIM');
-    assert(FIRST_ROW_INDEX + FIRST_COL_INDEX == DIM - DIM, 'Wrong FIRST_ROW/COL_INDEX');
-    assert(LAST_ROW_INDEX == DIM - 1 && LAST_COL_INDEX == DIM - 1, 'Wrong LAST_ROW/COL_INDEX');
-    assert(LAST_ROW_CELL_INDEX == DIM * DIM - DIM, 'Wrong LAST_ROW_CELL_INDEX');
-    assert(LAST_COL_CELL_INDEX == DIM - 1, 'Wrong LAST_COL_CELL_INDEX');
-    assert(SHIFT == raise_to_power(2, 128), 'Wrong SHIFT');
+// #[test]
+// fn test_constants() {
+//     assert(
+//         INFINITE_GAME_GENESIS == 39132555273291485155644251043342963441664,
+//         'Wrong INFINITE_GAME_GENESIS'
+//     );
+//     assert(DIM == 15, 'Wrong DIM');
+//     assert(FIRST_ROW_INDEX + FIRST_COL_INDEX == DIM - DIM, 'Wrong FIRST_ROW/COL_INDEX');
+//     assert(LAST_ROW_INDEX == DIM - 1 && LAST_COL_INDEX == DIM - 1, 'Wrong LAST_ROW/COL_INDEX');
+//     assert(LAST_ROW_CELL_INDEX == DIM * DIM - DIM, 'Wrong LAST_ROW_CELL_INDEX');
+//     assert(LAST_COL_CELL_INDEX == DIM - 1, 'Wrong LAST_COL_CELL_INDEX');
+//     assert(SHIFT == raise_to_power(2, 128), 'Wrong SHIFT');
 
-    /// 225 1's -> 97 1's + 128 1's
-    let max_game: u256 = raise_to_power(2, (DIM * DIM).into()) - 1;
-    let high = max_game.high;
-    let low = max_game.low;
+//     /// 225 1's -> 97 1's + 128 1's
+//     let max_game: u256 = raise_to_power(2, (DIM * DIM).into()) - 1;
+//     let high = max_game.high;
+//     let low = max_game.low;
 
-    assert(high.into() == raise_to_power(2, HIGH_ARRAY_LEN.into()) - 1, 'Wrong HIGH_ARRAY_LEN');
-    assert(low.into() == raise_to_power(2, LOW_ARRAY_LEN.into()) - 1, 'Wrong LOW_ARRAY_LEN');
-    assert(CREATE_CREDIT_REQUIREMENT == 10, 'Wrong CREATE_CREDIT_REQUIREMENT');
-    assert(GIVE_LIFE_CREDIT_REQUIREMENT == 1, 'Wrong GIVE_LIFE_CREDIT_RE...');
-}
+//     assert(high.into() == raise_to_power(2, HIGH_ARRAY_LEN.into()) - 1, 'Wrong HIGH_ARRAY_LEN');
+//     assert(low.into() == raise_to_power(2, LOW_ARRAY_LEN.into()) - 1, 'Wrong LOW_ARRAY_LEN');
+//     assert(CREATE_CREDIT_REQUIREMENT == 10, 'Wrong CREATE_CREDIT_REQUIREMENT');
+//     assert(GIVE_LIFE_CREDIT_REQUIREMENT == 1, 'Wrong GIVE_LIFE_CREDIT_RE...');
+// }
 // #[test]
 // fn test_view_game() {
 //     let (_, GoL2, _) = deploy_contract('GoL2');

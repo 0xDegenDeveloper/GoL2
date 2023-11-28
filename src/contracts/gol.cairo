@@ -91,6 +91,30 @@ mod GoL2 {
 
     #[generate_trait]
     impl HelperImpl of HelperTrait {
+        fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
+            assert(self.current_generation.read(game_id) != 0, 'Game has not been started');
+            let current_generation: u256 = self.current_generation.read(game_id).into();
+            assert(generation.into() <= current_generation, 'Generation does not exist yet');
+        }
+
+        fn assert_game_does_not_exist(self: @ContractState, game_id: felt252) {
+            assert(
+                self.stored_game.read((game_id, 1)) + self.current_generation.read(game_id) == 0,
+                'Game already exists'
+            );
+        }
+
+        fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
+            assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
+        }
+
+        fn assert_valid_new_game(self: @ContractState, game: felt252) { //
+            self.assert_game_does_not_exist(game);
+            assert(
+                game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big'
+            ); /// max game is 225 bits all 1s => 2^225 - 1
+        }
+
         /// todo 
         fn pay(self: @ContractState, user: ContractAddress, credit_requirement: felt252) { ///
         /// ERC20._burn(user, credit_requirement_u256);
@@ -101,14 +125,43 @@ mod GoL2 {
         /// ERC20._mint(user, 1_u256);
         }
 
-        /// done
         fn ensure_user(self: @ContractState) -> ContractAddress {
             let caller = get_caller_address();
             assert(caller.is_non_zero(), 'User not authenticated');
             caller
         }
 
-        /// todo 
+        fn get_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
+            self.assert_game_exists(game_id, generation);
+            self.stored_game.read((game_id, generation))
+        }
+
+        fn get_generation(self: @ContractState, game_id: felt252) -> felt252 {
+            self.current_generation.read(game_id)
+        }
+
+        fn get_last_state(self: @ContractState) -> (felt252, felt252) {
+            let generation = self.current_generation.read(INFINITE_GAME_GENESIS);
+            let game_state = self.stored_game.read((INFINITE_GAME_GENESIS, generation));
+            (generation, game_state)
+        }
+
+        fn save_game(
+            ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
+        ) {
+            self.stored_game.write((game_id, generation), packed_game);
+        }
+
+        fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
+            self.current_generation.write(game_id, generation);
+        }
+
+        fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
+            self.save_game(game_state, 1, game_state);
+            self.save_generation_id(game_state, 1);
+            self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
+        }
+
         fn evolve_game(
             ref self: ContractState, game_id: felt252, user: ContractAddress
         ) -> (felt252, felt252) {
@@ -122,7 +175,7 @@ mod GoL2 {
             let game_state = self.stored_game.read((game_id, prev_generation));
             let cells = unpack_game(game_state);
             /// Evolve game by # of generations     
-            let new_cell_states = array!['todo']; //evaluate_rounds(generations, cells);
+            let new_cell_states = evaluate_rounds(generations.try_into().unwrap(), cells);
             let packed_game = pack_game(new_cell_states);
 
             self
@@ -137,83 +190,6 @@ mod GoL2 {
             (new_generation, packed_game)
         }
 
-        /// done
-        fn save_game(
-            ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
-        ) {
-            self.stored_game.write((game_id, generation), packed_game);
-        }
-
-        /// done
-        fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
-            self.current_generation.write(game_id, generation);
-        }
-
-        /// done
-        fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
-            assert(self.current_generation.read(game_id) != 0, 'Game does not exist');
-            let current_generation: u256 = self.current_generation.read(game_id).into();
-            assert(generation.into() <= current_generation, 'Generation does not exist');
-        }
-
-        /// done 
-        fn assert_game_does_not_exist(self: @ContractState, game_id: felt252) {
-            assert(self.current_generation.read(game_id) == 0, 'Game already exists');
-            assert(self.stored_game.read((game_id, 1)) == 0, 'Game already exists');
-        }
-
-
-        fn get_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
-            self.assert_game_exists(game_id, generation);
-            self.stored_game.read((game_id, generation))
-        }
-
-        fn get_generation(self: @ContractState, game_id: felt252) -> felt252 {
-            self.current_generation.read(game_id)
-        }
-
-        /// Creator Mode 
-
-        /// * done (check this against div_mod in og)
-        fn assert_valid_new_game(self: @ContractState, game: felt252) { //
-            self.assert_game_does_not_exist(game);
-            let game_as_int: u256 = game.into();
-            let high = game_as_int.high;
-
-            assert(
-                game_as_int < raise_to_power(2, (DIM * DIM).into()), 'Invalid game'
-            ); /// max game is 225 bits all 1s => 2^225 - 1
-
-            assert(
-                high.into() < raise_to_power(2, HIGH_ARRAY_LEN.into()), 'Invalid game2'
-            ); /// max game (high bits) is 97 bits all 1s => 2^97 - 1
-            assert(
-                game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Invalid game3'
-            ); /// max game is 225 bits all 1s => 2^225 - 1
-        }
-
-        /// done
-        fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
-            self.save_game(game_state, 1, game_state);
-            self.save_generation_id(game_state, 1);
-            self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
-        }
-
-        /// Infinite Mode
-
-        /// done
-        fn get_last_state(self: @ContractState) -> (felt252, felt252) {
-            let generation = self.current_generation.read(INFINITE_GAME_GENESIS);
-            let game_id = self.stored_game.read((INFINITE_GAME_GENESIS, generation));
-            (generation, game_id)
-        }
-
-        /// done
-        fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
-            assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
-        }
-
-        /// Write 
         fn activate_cell(
             ref self: ContractState,
             generation: felt252,
