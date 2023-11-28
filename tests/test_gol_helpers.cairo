@@ -23,7 +23,8 @@ use gol2::{
 
 use gol2::contracts::gol::GoL2;
 
-use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget};
+use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget,};
+
 
 use debug::PrintTrait;
 
@@ -178,13 +179,6 @@ fn test_get_last_state() {
     assert(generation == 1, 'Generation should be correct');
 }
 
-/// todo: test event
-#[test]
-fn test_create_new_game() {
-    assert(true, '')
-}
-
-// todo: test event
 #[test]
 fn test_evolve_game() {
     let acorn = 0x7300100008000000000000000000000000;
@@ -199,7 +193,6 @@ fn test_evolve_game() {
     assert(packed_game == acorn_evolution, 'Game should be correct');
 }
 
-/// todo: test event
 #[test]
 fn test_activate_cell() {
     let caller = contract_address_const::<'user'>();

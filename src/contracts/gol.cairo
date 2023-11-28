@@ -108,11 +108,10 @@ mod GoL2 {
             assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
         }
 
-        fn assert_valid_new_game(self: @ContractState, game: felt252) { //
+        fn assert_valid_new_game(self: @ContractState, game: felt252) {
             self.assert_game_does_not_exist(game);
-            assert(
-                game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big'
-            ); /// max game is 225 bits all 1s => 2^225 - 1
+            /// max game is 225 bits all 1s => 2^225 - 1
+            assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
         }
 
         /// todo 
