@@ -33,7 +33,7 @@ use debug::PrintTrait;
 /// Setup
 fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
     let contract = declare(name);
-    let contract_address = contract.deploy(@array![]).unwrap();
+    let contract_address = contract.deploy(@array!['admin']).unwrap();
     IGoL2Dispatcher { contract_address }
 }
 

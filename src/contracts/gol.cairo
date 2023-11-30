@@ -18,9 +18,9 @@ mod GoL2 {
     use core::integer::BoundedInt;
     use starknet::{
         get_block_timestamp, get_caller_address, get_contract_address, contract_address_const,
-        ContractAddress, ContractAddressIntoFelt252, Store, storage_address_from_base_and_offset,
-        StorageBaseAddress, SyscallResult, storage_read_syscall, storage_write_syscall,
-        Felt252TryIntoContractAddress
+        ContractAddress, ContractAddressIntoFelt252, ClassHash, Store,
+        storage_address_from_base_and_offset, StorageBaseAddress, SyscallResult,
+        storage_read_syscall, storage_write_syscall, Felt252TryIntoContractAddress
     };
     use core::integer;
     use option::{Option, OptionTrait};
@@ -36,9 +36,23 @@ mod GoL2 {
         }
     };
 
+    use openzeppelin::access::ownable::OwnableComponent;
+    use openzeppelin::upgrades::{UpgradeableComponent, interface::IUpgradeable};
     use openzeppelin::token::erc20::ERC20Component;
 
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
+
+    /// Ownable
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+
+    /// Upgradeable
+    impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+
+    /// ERC20
     #[abi(embed_v0)]
     impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
     #[abi(embed_v0)]
@@ -50,21 +64,36 @@ mod GoL2 {
 
     #[storage]
     struct Storage {
-        /// Game State
-        stored_game: LegacyMap<(felt252, felt252), felt252>, // game_id -> generation -> state
-        current_generation: LegacyMap<felt252, felt252>, // game_id -> generation
-        /// ERC20
+        /// Map of game_id -> generation -> state
+        stored_game: LegacyMap<(felt252, felt252), felt252>,
+        /// Map of game_id -> generation
+        current_generation: LegacyMap<felt252, felt252>,
+        /// Components
+        #[substorage(v0)]
+        ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
+        upgradeable: UpgradeableComponent::Storage,
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
     }
 
     /// Constructor
     #[constructor]
-    fn constructor(ref self: ContractState) {
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
         self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
+        self.ownable.initializer(owner);
     // ERC20 initializer
     // Proxy initializer
     }
+
+    #[external(v0)]
+    impl UpgradeableImpl of IUpgradeable<ContractState> {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            self.ownable.assert_only_owner();
+            self.upgradeable._upgrade(new_class_hash);
+        }
+    }
+
 
     /// External functions  
     #[external(v0)]
@@ -234,6 +263,10 @@ mod GoL2 {
         GameCreated: GameCreated,
         GameEvolved: GameEvolved,
         CellRevived: CellRevived,
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
+        #[flat]
+        UpgradeableEvent: UpgradeableComponent::Event,
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
