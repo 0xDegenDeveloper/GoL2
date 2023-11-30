@@ -1,44 +1,13 @@
-use array::ArrayTrait;
-use core::integer;
-use option::{Option, OptionTrait};
-use starknet::{ContractAddress, contract_address_const};
-use traits::{Into, TryInto};
-use zeroable::Zeroable;
-
+use starknet::contract_address_const;
 use gol2::{
-    contracts::gol::{
-        IGoL2Dispatcher, IGoL2DispatcherTrait,
-        GoL2::{current_generationContractMemberStateTrait, stored_gameContractMemberStateTrait},
-    },
-    utils::{
-        math::raise_to_power,
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, SHIFT, LOW_ARRAY_LEN,
-            HIGH_ARRAY_LEN, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT
-        },
-        packing::{pack_game, unpack_game}
-    }
+    contracts::gol::{GoL2, IGoL2Dispatcher, IGoL2DispatcherTrait},
+    utils::{math::raise_to_power, constants::INFINITE_GAME_GENESIS}
 };
 
-use gol2::contracts::gol::GoL2;
-
 use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget,};
-
 use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
-
-
 use debug::PrintTrait;
 
-/// Setup
-fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
-    let contract = declare(name);
-    let params = array![];
-    let contract_address = contract.deploy(@params).unwrap();
-    IGoL2Dispatcher { contract_address }
-}
-
-/// Tests
 #[test]
 fn test_assert_game_exists() {
     let caller = contract_address_const::<'user'>();

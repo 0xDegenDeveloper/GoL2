@@ -2,10 +2,9 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IGoL2<TContractState> {
-    // read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
-    // write 
+
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
@@ -14,31 +13,18 @@ trait IGoL2<TContractState> {
 
 #[starknet::contract]
 mod GoL2 {
-    use array::ArrayTrait;
-    use core::integer::BoundedInt;
-    use starknet::{
-        get_block_timestamp, get_caller_address, get_contract_address, contract_address_const,
-        ContractAddress, ContractAddressIntoFelt252, ClassHash, Store,
-        storage_address_from_base_and_offset, StorageBaseAddress, SyscallResult,
-        storage_read_syscall, storage_write_syscall, Felt252TryIntoContractAddress
-    };
-    use core::integer;
-    use option::{Option, OptionTrait};
-    use traits::{Into, TryInto};
-    use zeroable::Zeroable;
-    use gol2::utils::{
-        life_rules::{evaluate_rounds, apply_rules, get_adjacent}, math::{raise_to_power},
-        packing::{pack_game, unpack_game, revive_cell},
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, SHIFT, LOW_ARRAY_LEN,
-            HIGH_ARRAY_LEN, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT
-        }
-    };
-
+    use starknet::{get_caller_address, ContractAddress, ClassHash};
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::upgrades::{UpgradeableComponent, interface::IUpgradeable};
     use openzeppelin::token::erc20::ERC20Component;
+
+    use gol2::utils::{
+        life_rules::evaluate_rounds, math::raise_to_power,
+        packing::{pack_game, unpack_game, revive_cell},
+        constants::{
+            INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
+        }
+    };
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -61,14 +47,19 @@ mod GoL2 {
     impl SafeAllowanceImpl = ERC20Component::SafeAllowanceImpl<ContractState>;
     impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
+    #[constructor]
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
+        self.ownable.initializer(owner);
+    }
 
     #[storage]
     struct Storage {
-        /// Map of game_id -> generation -> state
+        /// Mapping for game_id -> generation -> state
         stored_game: LegacyMap<(felt252, felt252), felt252>,
-        /// Map of game_id -> generation
+        /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
-        /// Components
+        /// Component Storage
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
@@ -77,15 +68,48 @@ mod GoL2 {
         erc20: ERC20Component::Storage,
     }
 
-    /// Constructor
-    #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress) {
-        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
-        self.ownable.initializer(owner);
-    // ERC20 initializer
-    // Proxy initializer
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        GameCreated: GameCreated,
+        GameEvolved: GameEvolved,
+        CellRevived: CellRevived,
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
+        #[flat]
+        UpgradeableEvent: UpgradeableComponent::Event,
+        #[flat]
+        ERC20Event: ERC20Component::Event,
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct GameCreated {
+        #[key]
+        user_id: ContractAddress,
+        game_id: felt252,
+        state: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct GameEvolved {
+        #[key]
+        user_id: ContractAddress,
+        #[key]
+        game_id: felt252,
+        generation: felt252,
+        state: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct CellRevived {
+        #[key]
+        user_id: ContractAddress,
+        generation: felt252,
+        cell_index: felt252,
+        state: felt252,
+    }
+
+    /// External Functions
     #[external(v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
@@ -94,8 +118,6 @@ mod GoL2 {
         }
     }
 
-
-    /// External functions  
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
         /// Read
@@ -131,7 +153,7 @@ mod GoL2 {
         }
     }
 
-
+    /// Internal Functions
     #[generate_trait]
     impl HelperImpl of HelperTrait {
         fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
@@ -254,49 +276,6 @@ mod GoL2 {
                     }
                 );
         }
-    }
-
-    /// Events 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    enum Event {
-        GameCreated: GameCreated,
-        GameEvolved: GameEvolved,
-        CellRevived: CellRevived,
-        #[flat]
-        OwnableEvent: OwnableComponent::Event,
-        #[flat]
-        UpgradeableEvent: UpgradeableComponent::Event,
-        #[flat]
-        ERC20Event: ERC20Component::Event,
-    }
-
-    #[derive(Drop, starknet::Event)]
-    struct GameCreated {
-        #[key]
-        user_id: ContractAddress,
-        #[key]
-        game_id: felt252,
-        state: felt252,
-    }
-
-    #[derive(Drop, starknet::Event)]
-    struct GameEvolved {
-        #[key]
-        user_id: ContractAddress,
-        #[key]
-        game_id: felt252,
-        state: felt252,
-        generation: felt252,
-    }
-
-    #[derive(Drop, starknet::Event)]
-    struct CellRevived {
-        #[key]
-        user_id: ContractAddress,
-        generation: felt252,
-        cell_index: felt252,
-        state: felt252,
     }
 }
 

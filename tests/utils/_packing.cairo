@@ -1,14 +1,4 @@
-use array::ArrayTrait;
-use debug::PrintTrait;
-use core::integer;
-use option::{Option, OptionTrait};
-use starknet::ContractAddress;
-use traits::{Into, TryInto};
-use zeroable::Zeroable;
-use snforge_std::{declare, ContractClassTrait};
-
 use gol2::{
-    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait},
     utils::{math::raise_to_power, packing::{pack_cells, pack_game, unpack_game, revive_cell}}
 };
 

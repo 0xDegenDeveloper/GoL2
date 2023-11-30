@@ -1,33 +1,5 @@
-use array::ArrayTrait;
-use core::integer;
-use option::{Option, OptionTrait};
-use starknet::ContractAddress;
-use traits::{Into, TryInto};
-use zeroable::Zeroable;
-
-use gol2::{
-    contracts::gol::{IGoL2SafeDispatcher, IGoL2SafeDispatcherTrait},
-    utils::{
-        math::raise_to_power,
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, SHIFT, LOW_ARRAY_LEN,
-            HIGH_ARRAY_LEN
-        },
-        life_rules::{get_adjacent, evaluate_rounds}
-    }
-};
-
-use snforge_std::{declare, ContractClassTrait};
-
+use gol2::utils::life_rules::{get_adjacent, evaluate_rounds};
 use debug::PrintTrait;
-
-/// Setup
-fn deploy_contract(name: felt252) -> IGoL2SafeDispatcher {
-    let contract = declare(name);
-    let contract_address = contract.deploy(@array![]).unwrap();
-    IGoL2SafeDispatcher { contract_address }
-}
 
 #[test]
 fn test_get_adjacent() {
@@ -54,7 +26,6 @@ fn test_get_adjacent_wrapped_ul() {
     assert(ld == 29, 'Invalid LD');
     assert(rd == 16, 'Invalid RD');
 }
-
 
 #[test]
 fn test_get_adjacent_wrapped_dl() {
@@ -97,8 +68,6 @@ fn test_get_adjacent_wrapped_dr() {
 
 #[test]
 fn test_evaluate_rounds() {
-    // let mut gol = deploy_contract('GoL2');
-    /// make acorn 
     let mut acorn = array![];
     let mut expected_evolution = array![];
     let mut i = 0;
@@ -132,4 +101,25 @@ fn test_evaluate_rounds() {
     let evolved = evaluate_rounds(1, acorn.clone());
 
     assert(evolved == expected_evolution, 'Invalid acorn evolution');
+}
+
+#[test]
+fn test_evaluate_rounds_spinner() {
+    let mut spinner = array![];
+    let mut i = 225;
+    loop {
+        if i == 0 {
+            break ();
+        }
+        if i == 1 || i == 2 || i == 3 {
+            spinner.append(1);
+        } else {
+            spinner.append(0);
+        }
+        i -= 1;
+    };
+
+    let evolved = evaluate_rounds(2, spinner.clone());
+
+    assert(evolved == spinner, 'Invalid spinner evolution');
 }

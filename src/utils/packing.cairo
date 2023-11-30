@@ -1,11 +1,4 @@
-use array::ArrayTrait;
-use debug::PrintTrait;
-use core::integer;
-use option::{Option, OptionTrait};
-use starknet::ContractAddress;
-use traits::{Into, TryInto};
-use zeroable::Zeroable;
-use gol2::utils::{math::raise_to_power, constants::{DIM}};
+use gol2::utils::{math::raise_to_power, constants::DIM};
 
 /// The game board is a 15x15 grid of cells:
 /// | 0 | 1 | 2 | 3 | 4 |...|14 |
@@ -57,7 +50,6 @@ fn unpack_game(game: felt252) -> Array<felt252> {
         mask *= 2;
         i += 1;
     };
-    assert(cell_array.len() == DIM * DIM, 'Invalid cell array length');
     cell_array
 }
 

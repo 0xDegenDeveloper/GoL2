@@ -1,11 +1,9 @@
-use debug::PrintTrait;
-
-
 use gol2::utils::constants::{
     DIM, FIRST_ROW_INDEX, FIRST_COL_INDEX, LAST_COL_INDEX, LAST_ROW_CELL_INDEX, LAST_COL_CELL_INDEX,
     LAST_ROW_INDEX
 };
 
+/// Evaluates an amount of games and returns the final state
 fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt252> {
     let mut i = 0;
     loop {
@@ -18,6 +16,7 @@ fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt25
     cells
 }
 
+/// Apply the Game of Life rules (wrapping on edges)
 fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     let mut evolution = array![];
     let mut i = cell_states.len();
@@ -63,6 +62,7 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     evolution
 }
 
+/// Gets the 8 neighbours of a cell (wrapping on edges)
 fn get_adjacent(cell_idx: usize) -> (usize, usize, usize, usize, usize, usize, usize, usize) {
     /// cell_states and pending_states structure:
     ///         Row 0               Row 1              Row 2
