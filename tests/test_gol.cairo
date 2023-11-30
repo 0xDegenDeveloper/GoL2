@@ -13,9 +13,12 @@ use gol2::{
             INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
             FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, SHIFT, LOW_ARRAY_LEN,
             HIGH_ARRAY_LEN, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT
-        }
+        },
+        packing::unpack_game
     }
 };
+use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+
 
 use starknet::{contract_address_const};
 
@@ -33,6 +36,7 @@ fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
     let contract_address = contract.deploy(@array![]).unwrap();
     IGoL2Dispatcher { contract_address }
 }
+
 /// Tests
 #[test]
 fn test_constants() {
@@ -55,47 +59,58 @@ fn test_constants() {
     assert(CREATE_CREDIT_REQUIREMENT == 10, 'Wrong CREATE_CREDIT_REQUIREMENT');
     assert(GIVE_LIFE_CREDIT_REQUIREMENT == 1, 'Wrong GIVE_LIFE_CREDIT_RE...');
 }
-
+// todo: fix clutter
 #[test]
 fn test_view_game() {
     let gol = deploy_contract('GoL2');
-    start_prank(CheatTarget::All(()), contract_address_const::<'creator'>());
-    gol.create(INFINITE_GAME_GENESIS);
-    let game_state: felt252 = gol.view_game(INFINITE_GAME_GENESIS, 1);
-    let game_state2: felt252 = gol.view_game(INFINITE_GAME_GENESIS, 2);
-    assert(game_state == INFINITE_GAME_GENESIS, 'Invalid game_state');
-    assert(game_state2 == 0, 'Invalid game_state');
-    stop_prank(CheatTarget::All(()));
+    let gamestate = gol.view_game(INFINITE_GAME_GENESIS, 1);
+    let gamestate2 = gol.view_game(INFINITE_GAME_GENESIS, 2);
+    assert(gamestate == INFINITE_GAME_GENESIS, 'Invalid gamestate');
+    assert(gamestate2 == 0, 'Invalid gamestate2');
 }
 
 #[test]
 fn test_get_current_generation() {
     let gol = deploy_contract('GoL2');
-    start_prank(CheatTarget::All(()), contract_address_const::<'creator'>());
-    gol.create(INFINITE_GAME_GENESIS);
-    let gen: felt252 = gol.get_current_generation(INFINITE_GAME_GENESIS);
+    let gen = gol.get_current_generation(INFINITE_GAME_GENESIS);
     assert(gen == 1, 'Invalid game_state');
-    stop_prank(CheatTarget::All(()));
 }
-
 /// todo: test erc20 balance change
 #[test]
 fn test_create() {
     let gol = deploy_contract('GoL2');
+    let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let creator = contract_address_const::<'creator'>();
+    let mut spy = spy_events(SpyOn::One(gol.contract_address));
     start_prank(CheatTarget::All(()), creator);
 
-    //  let user_bal0 = ERC20.balance_of(creator);
-    // let contract_bal0 = ERC20.balance_of(erc20.contract_address);
+    /// give user enough credits to create game
+    let mut i = 10;
+    loop {
+        if i == 0 {
+            break ();
+        }
+        gol.evolve(INFINITE_GAME_GENESIS);
+        i -= 1;
+    };
 
-    let mut spy = spy_events(SpyOn::One(gol.contract_address));
+    let bal0 = token.balance_of(creator);
+    let sup0 = token.total_supply();
 
-    gol.create(INFINITE_GAME_GENESIS);
+    gol.create('gamestate');
 
-    //  let user_bal1 = ERC20.balance_of(creator);
-    // let contract_bal1 = ERC20.balance_of(erc20.contract_address);
-    // assert(user_bal0 - user_bal1 == CREATE_CREDIT_REQUIREMENT, 'Invalid user balance change');
-    // assert(contract_bal1 - contract_bal0 == CREATE_CREDIT_REQUIREMENT, 'Invalid contract balance change'); // might need to check supply instead
+    let bal1 = token.balance_of(creator);
+    let sup1 = token.total_supply();
+
+    assert(
+        (bal0 - bal1).try_into().unwrap() == CREATE_CREDIT_REQUIREMENT,
+        'Invalid user balance change'
+    );
+    assert(
+        (sup0 - sup1).try_into().unwrap() == CREATE_CREDIT_REQUIREMENT,
+        'Invalid contract balance change'
+    );
+    assert(gol.view_game('gamestate', 1) == 'gamestate', 'Invalid game_state');
 
     spy
         .assert_emitted(
@@ -104,9 +119,7 @@ fn test_create() {
                     gol.contract_address,
                     GoL2::Event::GameCreated(
                         GoL2::GameCreated {
-                            user_id: creator,
-                            game_id: INFINITE_GAME_GENESIS,
-                            state: INFINITE_GAME_GENESIS,
+                            user_id: creator, game_id: 'gamestate', state: 'gamestate',
                         }
                     )
                 )
@@ -116,26 +129,25 @@ fn test_create() {
     stop_prank(CheatTarget::All(()));
 }
 
-/// todo: test erc20 balance change
 #[test]
 fn test_evolve() {
     let gol = deploy_contract('GoL2');
+    let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
+    let mut spy = spy_events(SpyOn::One(gol.contract_address));
     let creator = contract_address_const::<'creator'>();
     let acorn_evolved = 0x100030006e0000000000000000000000000000;
     start_prank(CheatTarget::All(()), creator);
 
-    /// let user_bal0 = ERC20.balance_of(creator);
-    /// let contract_bal0 = ERC20.balance_of(erc20.contract_address);
+    let bal0 = token.balance_of(creator);
+    let sup0 = token.total_supply();
 
-    let mut spy = spy_events(SpyOn::One(gol.contract_address));
-
-    gol.create(INFINITE_GAME_GENESIS);
     gol.evolve(INFINITE_GAME_GENESIS);
 
-    /// let user_bal1 = ERC20.balance_of(creator);
-    /// let contract_bal1 = ERC20.balance_of(erc20.contract_address);
-    /// assert(user_bal1 - user_bal1 == 1, 'Invalid user balance change');
-    /// assert(contract_bal0 - contract_bal1 == 1, 'Invalid contract balance change'); // might need to check supply instead
+    let bal1 = token.balance_of(creator);
+    let sup1 = token.total_supply();
+
+    assert(bal1 - bal0 == 1, 'Invalid user balance change');
+    assert(sup1 - sup0 == 1, 'Invalid contract balance change');
 
     assert(gol.view_game(INFINITE_GAME_GENESIS, 1) == INFINITE_GAME_GENESIS, 'Invalid game_state');
     assert(gol.view_game(INFINITE_GAME_GENESIS, 2) == acorn_evolved, 'Invalid game_state');
@@ -161,32 +173,33 @@ fn test_evolve() {
     stop_prank(CheatTarget::All(()));
 }
 
-/// todo: test erc20 balance change
+
+// /// todo: test erc20 balance change
 #[test]
 fn test_give_life_to_cell() {
     let gol = deploy_contract('GoL2');
-    let creator = contract_address_const::<'creator'>();
+    let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let acorn_evolved = 0x100030006e0000000000000000000000000000;
+    let mut spy = spy_events(SpyOn::One(gol.contract_address));
+    let creator = contract_address_const::<'creator'>();
     start_prank(CheatTarget::All(()), creator);
 
-    /// let user_bal0 = ERC20.balance_of(creator);
-    /// let contract_bal0 = ERC20.balance_of(erc20.contract_address);
+    gol.evolve(INFINITE_GAME_GENESIS);
 
-    let mut spy = spy_events(SpyOn::One(gol.contract_address));
+    let bal0 = token.balance_of(creator);
+    let sup0 = token.total_supply();
 
-    gol.create(INFINITE_GAME_GENESIS);
-    gol.give_life_to_cell(0);
+    gol.give_life_to_cell(3);
 
-    /// let user_bal1 = ERC20.balance_of(creator);
-    /// let contract_bal1 = ERC20.balance_of(erc20.contract_address);
-    /// assert(user_bal1 - user_bal1 == GIVE_LIFE_CREDIT_REQUIREMENT, 'Invalid user balance change');
-    /// assert(contract_bal0 - contract_bal1 == GIVE_LIFE_CREDIT_REQUIREMENT, 'Invalid contract balance change'); // might need to check supply instead
+    let bal1 = token.balance_of(creator);
+    let sup1 = token.total_supply();
 
-    assert(
-        gol.view_game(INFINITE_GAME_GENESIS, 1) == INFINITE_GAME_GENESIS + 1, 'Invalid game_state'
-    );
-    assert(gol.view_game(INFINITE_GAME_GENESIS, 2) == 0, 'Invalid game_state');
-    assert(gol.get_current_generation(INFINITE_GAME_GENESIS) == 1, 'Invalid generation');
+    assert(bal0 - bal1 == GIVE_LIFE_CREDIT_REQUIREMENT.into(), 'Invalid user balance change');
+    assert(sup0 - sup1 == GIVE_LIFE_CREDIT_REQUIREMENT.into(), 'Invalid contract balance change');
+
+    assert(gol.view_game(INFINITE_GAME_GENESIS, 1) == INFINITE_GAME_GENESIS, 'Invalid game_state');
+    assert(gol.view_game(INFINITE_GAME_GENESIS, 2) == acorn_evolved + 8, 'Invalid game_state');
+    assert(gol.get_current_generation(INFINITE_GAME_GENESIS) == 2, 'Invalid generation');
 
     spy
         .assert_emitted(
@@ -196,14 +209,14 @@ fn test_give_life_to_cell() {
                     GoL2::Event::CellRevived(
                         GoL2::CellRevived {
                             user_id: creator,
-                            generation: 1,
-                            cell_index: 0,
-                            state: INFINITE_GAME_GENESIS + 1,
+                            generation: 2,
+                            cell_index: 3,
+                            state: acorn_evolved + 8,
                         }
                     )
                 )
             ]
         );
-
     stop_prank(CheatTarget::All(()));
 }
+

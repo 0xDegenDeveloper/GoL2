@@ -67,8 +67,6 @@ fn pack_game(cells: Array<felt252>) -> felt252 {
     pack_cells(cells)
 }
 
-
-/// * move to game logic module (& tests)
 /// Toggles a cell index alive, returns new game state
 fn revive_cell(cell_index: felt252, current_state: felt252) -> felt252 {
     let enabled_bit: u256 = raise_to_power(2, cell_index.try_into().unwrap());

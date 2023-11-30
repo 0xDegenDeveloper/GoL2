@@ -25,6 +25,8 @@ use gol2::contracts::gol::GoL2;
 
 use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget,};
 
+use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+
 
 use debug::PrintTrait;
 
@@ -116,20 +118,57 @@ fn test_assert_valid_new_game_too_big() {
 
 // todo
 #[test]
-fn test_pay() {
-    assert(true, '');
+fn test_reward_user() {
+    let user = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
+    let bal0 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup0 = ERC20Component::ERC20::total_supply(@comp);
+    GoL2::HelperImpl::reward_user(ref state, user);
+    let bal1 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup1 = ERC20Component::ERC20::total_supply(@comp);
+    assert(bal1 - bal0 == 1, 'Balance should be correct');
+    assert(sup1 - sup0 == 1, 'Total supply should be correct');
 }
 
 // todo
 #[test]
-fn test_pay_not_enough_credits() {
-    assert(true, '');
+fn test_pay() {
+    let user = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
+
+    GoL2::HelperImpl::reward_user(ref state, user);
+    GoL2::HelperImpl::reward_user(ref state, user);
+    GoL2::HelperImpl::reward_user(ref state, user);
+
+    let bal1 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup1 = ERC20Component::ERC20::total_supply(@comp);
+
+    GoL2::HelperImpl::pay(ref state, user, 1);
+    GoL2::HelperImpl::pay(ref state, user, 1);
+
+    let bal2 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup2 = ERC20Component::ERC20::total_supply(@comp);
+
+    assert(bal1 - bal2 == 2, 'Balance should be correct');
+    assert(sup1 - sup2 == 2, 'Total supply should be correct');
 }
+
 // todo
 #[test]
-fn test_reward_user() {
-    assert(true, '');
+#[should_panic(expected: ('u256_sub Overflow',))]
+fn test_pay_not_enough_credits() {
+    let user = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
+
+    GoL2::HelperImpl::reward_user(ref state, user);
+    GoL2::HelperImpl::reward_user(ref state, user);
+
+    GoL2::HelperImpl::pay(ref state, user, 3)
 }
+
 
 #[test]
 fn test_ensure_user_authenticated() {

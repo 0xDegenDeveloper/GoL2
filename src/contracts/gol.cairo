@@ -11,9 +11,11 @@ trait IGoL2<TContractState> {
     fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
 }
 
+
 #[starknet::contract]
 mod GoL2 {
     use array::ArrayTrait;
+    use core::integer::BoundedInt;
     use starknet::{
         get_block_timestamp, get_caller_address, get_contract_address, contract_address_const,
         ContractAddress, ContractAddressIntoFelt252, Store, storage_address_from_base_and_offset,
@@ -34,18 +36,32 @@ mod GoL2 {
         }
     };
 
+    use openzeppelin::token::erc20::ERC20Component;
+
+    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
+    #[abi(embed_v0)]
+    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
+    #[abi(embed_v0)]
+    impl ERC20MetadataImpl = ERC20Component::ERC20MetadataImpl<ContractState>;
+    #[abi(embed_v0)]
+    impl SafeAllowanceImpl = ERC20Component::SafeAllowanceImpl<ContractState>;
+    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+
+
     #[storage]
     struct Storage {
         /// Game State
         stored_game: LegacyMap<(felt252, felt252), felt252>, // game_id -> generation -> state
         current_generation: LegacyMap<felt252, felt252>, // game_id -> generation
+        /// ERC20
+        #[substorage(v0)]
+        erc20: ERC20Component::Storage,
     }
 
     /// Constructor
     #[constructor]
-    fn constructor(ref self: ContractState) { // self.constants.initializer();
-    /// Per old contract 
-    // create_new_game(game_state=INFINITE_GAME_GENESIS, user_id=caller);
+    fn constructor(ref self: ContractState) {
+        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
     // ERC20 initializer
     // Proxy initializer
     }
@@ -69,7 +85,6 @@ mod GoL2 {
             self.create_new_game(game_state, caller);
         }
 
-        /// done
         fn evolve(ref self: ContractState, game_id: felt252) {
             let caller = self.ensure_user();
             let (generation, game) = self.evolve_game(game_id, caller);
@@ -78,7 +93,6 @@ mod GoL2 {
             self.reward_user(caller);
         }
 
-        /// done
         fn give_life_to_cell(ref self: ContractState, cell_index: felt252) {
             let caller = self.ensure_user();
             let (generation, current_game_state) = self.get_last_state();
@@ -110,18 +124,16 @@ mod GoL2 {
 
         fn assert_valid_new_game(self: @ContractState, game: felt252) {
             self.assert_game_does_not_exist(game);
-            /// max game is 225 bits all 1s => 2^225 - 1
+            /// max game => 225 bits all 1s => 2^225 - 1
             assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
         }
 
-        /// todo 
-        fn pay(self: @ContractState, user: ContractAddress, credit_requirement: felt252) { ///
-        /// ERC20._burn(user, credit_requirement_u256);
+        fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
+            self.erc20._burn(user, credit_requirement.into());
         }
 
-        /// todo 
-        fn reward_user(self: @ContractState, user: ContractAddress) { ///
-        /// ERC20._mint(user, 1_u256);
+        fn reward_user(ref self: ContractState, user: ContractAddress) {
+            self.erc20._mint(user, 1);
         }
 
         fn ensure_user(self: @ContractState) -> ContractAddress {
@@ -215,7 +227,6 @@ mod GoL2 {
         }
     }
 
-
     /// Events 
     #[event]
     #[derive(Drop, starknet::Event)]
@@ -223,6 +234,8 @@ mod GoL2 {
         GameCreated: GameCreated,
         GameEvolved: GameEvolved,
         CellRevived: CellRevived,
+        #[flat]
+        ERC20Event: ERC20Component::Event,
     }
 
     #[derive(Drop, starknet::Event)]

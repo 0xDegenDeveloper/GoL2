@@ -6,6 +6,5 @@ mod utils {
 }
 
 mod contracts {
-    mod ERC20;
     mod gol;
 }
