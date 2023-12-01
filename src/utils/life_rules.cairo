@@ -9,9 +9,10 @@ fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt25
     loop {
         if rounds == 0 {
             break ();
+        } else {
+            cells = apply_rules(cells);
+            rounds -= 1;
         }
-        cells = apply_rules(cells);
-        rounds -= 1;
     };
     cells
 }
@@ -58,7 +59,6 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
         }
         i -= 1;
     };
-
     evolution
 }
 

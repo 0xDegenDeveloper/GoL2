@@ -2,9 +2,10 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IGoL2<TContractState> {
+    /// Read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
-
+    /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
@@ -14,10 +15,10 @@ trait IGoL2<TContractState> {
 #[starknet::contract]
 mod GoL2 {
     use starknet::{get_caller_address, ContractAddress, ClassHash};
-    use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::upgrades::{UpgradeableComponent, interface::IUpgradeable};
-    use openzeppelin::token::erc20::ERC20Component;
-
+    use openzeppelin::{
+        access::ownable::OwnableComponent,
+        upgrades::{UpgradeableComponent, interface::IUpgradeable}, token::erc20::ERC20Component
+    };
     use gol2::utils::{
         life_rules::evaluate_rounds, math::raise_to_power,
         packing::{pack_game, unpack_game, revive_cell},
@@ -128,6 +129,7 @@ mod GoL2 {
         fn get_current_generation(self: @ContractState, game_id: felt252) -> felt252 {
             self.current_generation.read(game_id)
         }
+
         /// Write 
         fn create(ref self: ContractState, game_state: felt252) {
             let caller = self.ensure_user();

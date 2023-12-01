@@ -14,19 +14,18 @@ use gol2::utils::{math::raise_to_power, constants::DIM};
 /// Cell array: [1, 1, 1, 0, 0, 0,..., 0, 0] translates to binary: 0b00...000111, which is felt: 7
 
 fn pack_cells(cells: Array<felt252>) -> felt252 {
-    let mut result: felt252 = 0;
-    let mut i = 0;
+    let mut result = 0;
     let mut mask = 0x1;
-    let len = cells.clone().len();
+    let mut i = 0;
+    let end = cells.clone().len();
     loop {
-        if i >= len {
-            break ();
+        if i >= end {
+            break result;
         }
         result += *cells.at(i) * mask;
         mask *= 2;
         i += 1;
-    };
-    result
+    }
 }
 
 
