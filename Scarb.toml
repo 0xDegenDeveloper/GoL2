@@ -13,3 +13,8 @@ openzeppelin = {git = "https://github.com/OpenZeppelin/cairo-contracts/", tag = 
 [[target.starknet-contract]]
 sierra = true
 casm = true
+
+[[tool.snforge.fork]]
+name = "GOERLI"
+url = "https://starknet-goerli.infura.io/v3/196e369467a44d4aba5d458d308f4c1c"
+block_id.number = "911663"

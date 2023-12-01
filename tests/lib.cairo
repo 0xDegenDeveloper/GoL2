@@ -12,3 +12,7 @@ mod contracts {
         mod gol_upgradeable;
     }
 }
+
+mod forking {
+    mod goerli_fork;
+}
