@@ -7,4 +7,5 @@ mod utils {
 
 mod contracts {
     mod gol;
+    mod test_contract;
 }

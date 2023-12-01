@@ -6,7 +6,9 @@ mod utils {
 
 mod contracts {
     mod gol {
-        mod _external;
-        mod _internal;
+        mod _gol;
+        mod gol_internal;
+        mod gol_ownable;
+        mod gol_upgradeable;
     }
 }
