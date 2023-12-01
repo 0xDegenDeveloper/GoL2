@@ -3,33 +3,32 @@ use gol2::utils::constants::{
     LAST_ROW_INDEX
 };
 
-/// Evaluates an amount of games and returns the final state
+/// Evaluates an amount of games and returns the final state.
 fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt252> {
     let mut i = 0;
     loop {
         if rounds == 0 {
-            break ();
-        } else {
-            cells = apply_rules(cells);
-            rounds -= 1;
+            break cells.clone();
         }
-    };
-    cells
+        cells = apply_rules(cells.clone());
+        rounds -= 1;
+    }
 }
 
-/// Apply the Game of Life rules (wrapping on edges)
+/// Apply the Game of Life rules (wrapping on edges).
 fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     let mut evolution = array![];
-    let mut i = cell_states.len();
+    let mut i = 0;
     let end = cell_states.len();
 
     loop {
-        if i == 0 {
+        if i == end {
             break ();
         } else {
-            let cell_idx: usize = end - i;
+            let cell_idx: usize = i;
             let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(cell_idx);
 
+            /// How many neighbours are alive?
             let score = *cell_states[L]
                 + *cell_states[R]
                 + *cell_states[D]
@@ -39,65 +38,63 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
                 + *cell_states[LD]
                 + *cell_states[RD];
 
-            /// Final outcome
-            /// If alive
-            if *cell_states[cell_idx] == 1 {
-                /// With good neighbours
-                if (score - 2) * (score - 3) == 0 {
-                    /// Live
-                    evolution.append(1);
-                } else {
-                    evolution.append(0);
-                }
-            } else {
-                if score == 3 {
-                    evolution.append(1);
-                } else {
-                    evolution.append(0);
-                }
-            }
+            /// Game logic to determine next state of cell.
+            evolution
+                .append(
+                    /// If alive
+                    if *cell_states[cell_idx] == 1 {
+                        if (score - 2) * (score - 3) == 0 {
+                            /// Remain alive.
+                            1
+                        } else {
+                            /// Die.
+                            0
+                        }
+                    } else {
+                        if score == 3 {
+                            /// Become alive.
+                            1
+                        } else {
+                            /// Remain dead.
+                            0
+                        }
+                    }
+                );
         }
-        i -= 1;
+        i += 1;
     };
     evolution
 }
 
-/// Gets the 8 neighbours of a cell (wrapping on edges)
+/// Gets the 8 neighbours of a cell (wrapping on edges).
 fn get_adjacent(cell_idx: usize) -> (usize, usize, usize, usize, usize, usize, usize, usize) {
-    /// cell_states and pending_states structure:
+    /// Cell Array: 
     ///         Row 0               Row 1              Row 2
     ///  <-------DIM-------> <-------DIM-------> <-------DIM------->
     /// [0,0,0,0,1,...,1,0,1,0,1,1,0,...,1,0,0,1,1,1,0,1...,0,0,1,0...]
-    ///  ^col_0     col_DIM^ ^col_0     col_DIM^ ^col_0
-    // let cell_idx: usize = cell_idx.try_into().unwrap();
-    let row: usize = cell_idx / (DIM);
-    let col: usize = cell_idx % (DIM);
+    ///  ^col_0      col_14^ ^col_0      col_14^ ^col_0
+    let (row, col) = (cell_idx / (DIM), cell_idx % (DIM));
 
     /// LU U RU
     /// L  .  R
     /// LD D RD
-    let mut L = 226;
-    let mut R = 226;
-    let mut U = 226;
-    let mut D = 226;
-    let mut LU = 226;
-    let mut RU = 226;
-    let mut LD = 226;
-    let mut RD = 226;
+    let (mut L, mut R, mut U, mut D, mut LU, mut RU, mut LD, mut RD) = (
+        225, 225, 225, 225, 225, 225, 225, 225
+    );
 
-    if col == FIRST_COL_INDEX {
+    L = if col == FIRST_COL_INDEX {
         /// Cell is on left, and needs to wrap.
-        L = cell_idx + LAST_COL_CELL_INDEX;
+        cell_idx + LAST_COL_CELL_INDEX
     } else {
-        L = cell_idx - 1;
-    }
+        cell_idx - 1
+    };
 
-    if col == LAST_COL_INDEX {
+    R = if col == LAST_COL_INDEX {
         /// Cell is on right, and needs to wrap.
-        R = cell_idx - LAST_COL_CELL_INDEX;
+        cell_idx - LAST_COL_CELL_INDEX
     } else {
-        R = cell_idx + 1;
-    }
+        cell_idx + 1
+    };
 
     /// Bottom neighbours: D, LD, RD
     if row == LAST_ROW_INDEX {
