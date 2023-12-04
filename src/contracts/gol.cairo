@@ -113,6 +113,7 @@ mod GoL2 {
     /// External Functions
     #[external(v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
+        /// Write
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
@@ -158,29 +159,6 @@ mod GoL2 {
     /// Internal Functions
     #[generate_trait]
     impl HelperImpl of HelperTrait {
-        fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
-            assert(self.current_generation.read(game_id) != 0, 'Game has not been started');
-            let current_generation: u256 = self.current_generation.read(game_id).into();
-            assert(generation.into() <= current_generation, 'Generation does not exist yet');
-        }
-
-        fn assert_game_does_not_exist(self: @ContractState, game_id: felt252) {
-            assert(
-                self.stored_game.read((game_id, 1)) + self.current_generation.read(game_id) == 0,
-                'Game already exists'
-            );
-        }
-
-        fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
-            assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
-        }
-
-        fn assert_valid_new_game(self: @ContractState, game: felt252) {
-            self.assert_game_does_not_exist(game);
-            /// max game => 225 bits all 1s => 2^225 - 1
-            assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
-        }
-
         fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
             self.erc20._burn(user, credit_requirement.into());
         }
@@ -193,37 +171,6 @@ mod GoL2 {
             let caller = get_caller_address();
             assert(caller.is_non_zero(), 'User not authenticated');
             caller
-        }
-
-        fn get_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
-            self.assert_game_exists(game_id, generation);
-            self.stored_game.read((game_id, generation))
-        }
-
-        fn get_generation(self: @ContractState, game_id: felt252) -> felt252 {
-            self.current_generation.read(game_id)
-        }
-
-        fn get_last_state(self: @ContractState) -> (felt252, felt252) {
-            let generation = self.current_generation.read(INFINITE_GAME_GENESIS);
-            let game_state = self.stored_game.read((INFINITE_GAME_GENESIS, generation));
-            (generation, game_state)
-        }
-
-        fn save_game(
-            ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
-        ) {
-            self.stored_game.write((game_id, generation), packed_game);
-        }
-
-        fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
-            self.current_generation.write(game_id, generation);
-        }
-
-        fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
-            self.save_game(game_state, 1, game_state);
-            self.save_generation_id(game_state, 1);
-            self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
         }
 
         fn evolve_game(
@@ -254,6 +201,62 @@ mod GoL2 {
             (new_generation, packed_game)
         }
 
+        fn save_game(
+            ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
+        ) {
+            self.stored_game.write((game_id, generation), packed_game);
+        }
+
+        fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
+            self.current_generation.write(game_id, generation);
+        }
+
+        fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
+            assert(self.current_generation.read(game_id) != 0, 'Game has not been started');
+            let current_generation: u256 = self.current_generation.read(game_id).into();
+            assert(generation.into() <= current_generation, 'Generation does not exist yet');
+        }
+
+        fn assert_game_does_not_exist(self: @ContractState, game_id: felt252) {
+            assert(
+                self.stored_game.read((game_id, 1)) + self.current_generation.read(game_id) == 0,
+                'Game already exists'
+            );
+        }
+
+        fn get_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
+            self.assert_game_exists(game_id, generation);
+            self.stored_game.read((game_id, generation))
+        }
+
+        fn get_generation(self: @ContractState, game_id: felt252) -> felt252 {
+            self.current_generation.read(game_id)
+        }
+
+        /// Creator Mode
+        fn assert_valid_new_game(self: @ContractState, game: felt252) {
+            self.assert_game_does_not_exist(game);
+            /// max game => 225 bits all 1s => 2^225 - 1
+            assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
+        }
+
+        fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
+            self.save_game(game_state, 1, game_state);
+            self.save_generation_id(game_state, 1);
+            self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
+        }
+
+        /// Infinite Mode
+        fn get_last_state(self: @ContractState) -> (felt252, felt252) {
+            let generation = self.current_generation.read(INFINITE_GAME_GENESIS);
+            let game_state = self.stored_game.read((INFINITE_GAME_GENESIS, generation));
+            (generation, game_state)
+        }
+
+        fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
+            assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
+        }
+
         fn activate_cell(
             ref self: ContractState,
             generation: felt252,
@@ -266,6 +269,7 @@ mod GoL2 {
 
             assert(packed_game != current_state, 'No changes made to game');
 
+            /// Generation does not increment when cell is activated
             self.save_game(INFINITE_GAME_GENESIS, generation, packed_game);
 
             self

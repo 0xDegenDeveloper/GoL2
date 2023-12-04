@@ -37,15 +37,19 @@ fn test_owner() {
 
 #[test]
 fn test_transfer_ownership() {
+    let admin = contract_address_const::<'admin'>();
+    start_prank(CheatTarget::All(()), admin);
+
     let Contract = deploy_contract('GoL2');
     let Owner = IOwnableDispatcher { contract_address: Contract.contract_address };
-    let admin = contract_address_const::<'admin'>();
+
     let new_owner = contract_address_const::<'new_owner'>();
-    start_prank(CheatTarget::All(()), admin);
+
     Owner.transfer_ownership(new_owner);
+
+    assert(Owner.owner() == new_owner, 'Owner should be new_owner');
+
     stop_prank(CheatTarget::All(()));
-    let current_owner = Owner.owner();
-    assert(current_owner.into() == 'new_owner', 'Owner should be new_owner');
 }
 
 #[test]

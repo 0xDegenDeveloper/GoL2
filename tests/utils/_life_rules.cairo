@@ -76,23 +76,30 @@ fn test_evaluate_rounds() {
         if i >= 225_u32 {
             break ();
         }
-        if i == 99 || i == 116 || i == 128 || i == 129 || i == 132 || i == 133 || i == 134 {
-            acorn.append(1);
-        } else {
-            acorn.append(0);
-        }
-        if j == 113
-            || j == 114
-            || j == 115
-            || j == 117
-            || j == 118
-            || j == 132
-            || j == 133
-            || j == 148 {
-            expected_evolution.append(1);
-        } else {
-            expected_evolution.append(0);
-        }
+        acorn
+            .append(
+                if i == 99 || i == 116 || i == 128 || i == 129 || i == 132 || i == 133 || i == 134 {
+                    1
+                } else {
+                    0
+                }
+            );
+
+        expected_evolution
+            .append(
+                if j == 113
+                    || j == 114
+                    || j == 115
+                    || j == 117
+                    || j == 118
+                    || j == 132
+                    || j == 133
+                    || j == 148 {
+                    1
+                } else {
+                    0
+                }
+            );
 
         i += 1;
         j += 1;
@@ -111,15 +118,16 @@ fn test_evaluate_rounds_spinner() {
         if i == 0 {
             break ();
         }
-        if i == 1 || i == 2 || i == 3 {
-            spinner.append(1);
+        spinner.append(if i == 1 || i == 2 || i == 3 {
+            1
         } else {
-            spinner.append(0);
-        }
+            0
+        });
+
         i -= 1;
     };
 
-    let evolved = evaluate_rounds(2, spinner.clone());
-
+    let evolved = evaluate_rounds(4, spinner.clone());
+    /// spinners alternate between horizontal and vertical every generation
     assert(evolved == spinner, 'Invalid spinner evolution');
 }

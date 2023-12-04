@@ -58,13 +58,13 @@ fn test_pack_game() {
     loop {
         if i >= 225 {
             break ();
-        } else {
-            if i == 4 {
-                cell_array.append(1);
-            } else {
-                cell_array.append(0);
-            }
         }
+        cell_array.append(if i == 4 {
+            1
+        } else {
+            0
+        });
+
         i += 1;
     };
 
@@ -85,11 +85,20 @@ fn test_pack_game_acorn() {
         if i >= 225 {
             break ();
         } else {
-            if i == 128 || i == 129 || i == 132 || i == 133 || i == 134 || i == 116 || i == 99 {
-                acorn.append(1);
-            } else {
-                acorn.append(0);
-            }
+            acorn
+                .append(
+                    if i == 128
+                        || i == 129
+                        || i == 132
+                        || i == 133
+                        || i == 134
+                        || i == 116
+                        || i == 99 {
+                        1
+                    } else {
+                        0
+                    }
+                );
 
             /// Check unpacked matches acorn (done in this loop to fit steps in 1 test)
             assert(*unpacked.at(i) == *acorn.at(i), 'Array mismatch');
@@ -109,9 +118,8 @@ fn test_maximum_packed_game() {
     loop {
         if i >= 225 {
             break ();
-        } else {
-            game.append(1);
         }
+        game.append(1);
         i += 1;
     };
 
@@ -143,9 +151,8 @@ fn test_maximum_unpacked_game() {
         let cell = unpacked_game.pop_front();
         if cell.is_none() {
             break ();
-        } else {
-            assert(cell.unwrap() == 1, 'Unpacked game incorrect');
         }
+        assert(cell.unwrap() == 1, 'Unpacked game incorrect');
     };
 }
 

@@ -43,11 +43,13 @@ fn test_upgrade_as_owner() {
     let new_hash = declare('TestContract').class_hash;
 
     IUpgradeableDispatcher { contract_address: gol.contract_address }.upgrade(new_hash);
+    let new_gol = ITestTraitDispatcher { contract_address: gol.contract_address };
 
     let hash_final = get_class_hash(gol.contract_address);
 
     assert(hash_init != hash_final, 'Hash not changed');
     assert(hash_final == new_hash, 'Hash upgrade incorrect');
+    assert(new_gol.x() == 0, 'New is missing ()s');
     stop_prank(CheatTarget::All(()));
 }
 

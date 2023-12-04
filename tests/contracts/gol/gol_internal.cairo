@@ -9,6 +9,110 @@ use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDis
 use debug::PrintTrait;
 
 #[test]
+fn test_pay() {
+    let user = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
+
+    GoL2::HelperImpl::reward_user(ref state, user);
+    GoL2::HelperImpl::reward_user(ref state, user);
+    GoL2::HelperImpl::reward_user(ref state, user);
+
+    let bal1 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup1 = ERC20Component::ERC20::total_supply(@comp);
+
+    GoL2::HelperImpl::pay(ref state, user, 1);
+    GoL2::HelperImpl::pay(ref state, user, 1);
+
+    let bal2 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup2 = ERC20Component::ERC20::total_supply(@comp);
+
+    assert(bal1 - bal2 == 2, 'Balance should be correct');
+    assert(sup1 - sup2 == 2, 'Total supply should be correct');
+}
+
+#[test]
+#[should_panic(expected: ('u256_sub Overflow',))]
+fn test_pay_not_enough_credits() {
+    let user = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
+
+    GoL2::HelperImpl::reward_user(ref state, user);
+    GoL2::HelperImpl::reward_user(ref state, user);
+
+    GoL2::HelperImpl::pay(ref state, user, 3)
+}
+
+#[test]
+fn test_reward_user() {
+    let user = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
+    let bal0 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup0 = ERC20Component::ERC20::total_supply(@comp);
+    GoL2::HelperImpl::reward_user(ref state, user);
+    let bal1 = ERC20Component::ERC20::balance_of(@comp, user);
+    let sup1 = ERC20Component::ERC20::total_supply(@comp);
+    assert(bal1 - bal0 == 1, 'Balance should be correct');
+    assert(sup1 - sup0 == 1, 'Total supply should be correct');
+}
+
+#[test]
+fn test_ensure_user_authenticated() {
+    let mut state = GoL2::contract_state_for_testing();
+    let user = contract_address_const::<'user'>();
+    start_prank(CheatTarget::All(()), user);
+    let caller = GoL2::HelperImpl::ensure_user(@state);
+    assert(caller == user, 'User should be ensured');
+    stop_prank(CheatTarget::All(()));
+}
+
+#[test]
+#[should_panic(expected: ('User not authenticated',))]
+fn test_ensure_user_not_authenticated() {
+    let mut state = GoL2::contract_state_for_testing();
+    start_prank(CheatTarget::All(()), contract_address_const::<0>());
+    let caller = GoL2::HelperImpl::ensure_user(@state);
+    stop_prank(CheatTarget::All(()));
+}
+
+#[test]
+fn test_evolve_game() {
+    let acorn = 0x7300100008000000000000000000000000;
+    let acorn_evolution = 0x100030006e0000000000000000000000000000;
+    let caller = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    GoL2::HelperImpl::create_new_game(ref state, acorn, caller);
+
+    let (generation, packed_game) = GoL2::HelperImpl::evolve_game(ref state, acorn, caller);
+
+    assert(generation == 2, 'Generation should be correct');
+    assert(packed_game == acorn_evolution, 'Game should be correct');
+}
+
+#[test]
+fn test_get_game() {
+    let caller = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    GoL2::HelperImpl::create_new_game(ref state, INFINITE_GAME_GENESIS, caller);
+    let game_state = GoL2::HelperImpl::get_game(@state, INFINITE_GAME_GENESIS, 1);
+    let generation = GoL2::HelperImpl::get_generation(@state, INFINITE_GAME_GENESIS);
+    assert(game_state == INFINITE_GAME_GENESIS, 'Genesis should be correct');
+}
+
+#[test]
+fn test_assert_valid_new_game() {
+    let caller = contract_address_const::<'user'>();
+    let mut state = GoL2::contract_state_for_testing();
+    GoL2::HelperImpl::assert_valid_new_game(@state, 0);
+    GoL2::HelperImpl::assert_valid_new_game(@state, 1);
+    GoL2::HelperImpl::assert_valid_new_game(
+        @state, (raise_to_power(2, 225) - 1).try_into().unwrap()
+    );
+}
+
+#[test]
 fn test_assert_game_exists() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
@@ -67,105 +171,11 @@ fn test_assert_valid_cell_index_out_of_range() {
 }
 
 #[test]
-fn test_assert_valid_new_game() {
-    let caller = contract_address_const::<'user'>();
-    let mut state = GoL2::contract_state_for_testing();
-    GoL2::HelperImpl::assert_valid_new_game(@state, 0);
-    GoL2::HelperImpl::assert_valid_new_game(@state, 1);
-    GoL2::HelperImpl::assert_valid_new_game(
-        @state, (raise_to_power(2, 225) - 1).try_into().unwrap()
-    );
-}
-
-#[test]
 #[should_panic(expected: ('Game size too big',))]
 fn test_assert_valid_new_game_too_big() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
     GoL2::HelperImpl::assert_valid_new_game(@state, (raise_to_power(2, 225)).try_into().unwrap());
-}
-
-// todo
-#[test]
-fn test_reward_user() {
-    let user = contract_address_const::<'user'>();
-    let mut state = GoL2::contract_state_for_testing();
-    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
-    let bal0 = ERC20Component::ERC20::balance_of(@comp, user);
-    let sup0 = ERC20Component::ERC20::total_supply(@comp);
-    GoL2::HelperImpl::reward_user(ref state, user);
-    let bal1 = ERC20Component::ERC20::balance_of(@comp, user);
-    let sup1 = ERC20Component::ERC20::total_supply(@comp);
-    assert(bal1 - bal0 == 1, 'Balance should be correct');
-    assert(sup1 - sup0 == 1, 'Total supply should be correct');
-}
-
-// todo
-#[test]
-fn test_pay() {
-    let user = contract_address_const::<'user'>();
-    let mut state = GoL2::contract_state_for_testing();
-    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
-
-    GoL2::HelperImpl::reward_user(ref state, user);
-    GoL2::HelperImpl::reward_user(ref state, user);
-    GoL2::HelperImpl::reward_user(ref state, user);
-
-    let bal1 = ERC20Component::ERC20::balance_of(@comp, user);
-    let sup1 = ERC20Component::ERC20::total_supply(@comp);
-
-    GoL2::HelperImpl::pay(ref state, user, 1);
-    GoL2::HelperImpl::pay(ref state, user, 1);
-
-    let bal2 = ERC20Component::ERC20::balance_of(@comp, user);
-    let sup2 = ERC20Component::ERC20::total_supply(@comp);
-
-    assert(bal1 - bal2 == 2, 'Balance should be correct');
-    assert(sup1 - sup2 == 2, 'Total supply should be correct');
-}
-
-// todo
-#[test]
-#[should_panic(expected: ('u256_sub Overflow',))]
-fn test_pay_not_enough_credits() {
-    let user = contract_address_const::<'user'>();
-    let mut state = GoL2::contract_state_for_testing();
-    let mut comp = ERC20Component::HasComponent::get_component_mut(ref state);
-
-    GoL2::HelperImpl::reward_user(ref state, user);
-    GoL2::HelperImpl::reward_user(ref state, user);
-
-    GoL2::HelperImpl::pay(ref state, user, 3)
-}
-
-
-#[test]
-fn test_ensure_user_authenticated() {
-    let mut state = GoL2::contract_state_for_testing();
-    let user = contract_address_const::<'user'>();
-    start_prank(CheatTarget::All(()), user);
-    let caller = GoL2::HelperImpl::ensure_user(@state);
-    assert(caller == user, 'User should be ensured');
-    stop_prank(CheatTarget::All(()));
-}
-
-#[test]
-#[should_panic(expected: ('User not authenticated',))]
-fn test_ensure_user_not_authenticated() {
-    let mut state = GoL2::contract_state_for_testing();
-    start_prank(CheatTarget::All(()), contract_address_const::<0>());
-    let caller = GoL2::HelperImpl::ensure_user(@state);
-    stop_prank(CheatTarget::All(()));
-}
-
-#[test]
-fn test_get_game() {
-    let caller = contract_address_const::<'user'>();
-    let mut state = GoL2::contract_state_for_testing();
-    GoL2::HelperImpl::create_new_game(ref state, INFINITE_GAME_GENESIS, caller);
-    let game_state = GoL2::HelperImpl::get_game(@state, INFINITE_GAME_GENESIS, 1);
-    let generation = GoL2::HelperImpl::get_generation(@state, INFINITE_GAME_GENESIS);
-    assert(game_state == INFINITE_GAME_GENESIS, 'Genesis should be correct');
 }
 
 #[test]
@@ -185,20 +195,6 @@ fn test_get_last_state() {
     let (generation, game_state) = GoL2::HelperImpl::get_last_state(@state);
     assert(game_state == INFINITE_GAME_GENESIS, 'Genesis should be correct');
     assert(generation == 1, 'Generation should be correct');
-}
-
-#[test]
-fn test_evolve_game() {
-    let acorn = 0x7300100008000000000000000000000000;
-    let acorn_evolution = 0x100030006e0000000000000000000000000000;
-    let caller = contract_address_const::<'user'>();
-    let mut state = GoL2::contract_state_for_testing();
-    GoL2::HelperImpl::create_new_game(ref state, acorn, caller);
-
-    let (generation, packed_game) = GoL2::HelperImpl::evolve_game(ref state, acorn, caller);
-
-    assert(generation == 2, 'Generation should be correct');
-    assert(packed_game == acorn_evolution, 'Game should be correct');
 }
 
 #[test]
