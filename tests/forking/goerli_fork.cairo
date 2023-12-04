@@ -4,10 +4,7 @@ use snforge_std::{
     EventAssertions
 };
 use gol2::{
-    contracts::{
-        gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
-        test_contract::{ITestTraitDispatcher, ITestTraitDispatcherTrait}
-    },
+    contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
     utils::{
         math::raise_to_power,
         constants::{
