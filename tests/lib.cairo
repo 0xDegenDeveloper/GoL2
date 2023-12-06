@@ -15,4 +15,5 @@ mod contracts {
 
 mod forking {
     mod goerli_fork;
+    mod mainnet_fork;
 }

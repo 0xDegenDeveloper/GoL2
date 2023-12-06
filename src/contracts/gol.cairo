@@ -1,4 +1,4 @@
-use starknet::ContractAddress;
+use starknet::{ContractAddress, ClassHash};
 
 #[starknet::interface]
 trait IGoL2<TContractState> {
@@ -9,23 +9,31 @@ trait IGoL2<TContractState> {
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
+    /// .
+    fn migrate(ref self: TContractState, new_class_hash: ClassHash);
 }
 
 
 #[starknet::contract]
 mod GoL2 {
-    use starknet::{get_caller_address, ContractAddress, ClassHash};
+    use starknet::{
+        get_caller_address, contract_address_const, ContractAddress, ClassHash,
+        replace_class_syscall, contract_address_try_from_felt252
+    };
     use openzeppelin::{
         access::ownable::OwnableComponent,
-        upgrades::{UpgradeableComponent, interface::IUpgradeable}, token::erc20::ERC20Component
+        upgrades::{UpgradeableComponent, interface::IUpgradeable},
+        token::erc20::{ERC20Component, interface::IERC20Metadata}
     };
     use gol2::utils::{
         life_rules::evaluate_rounds, math::raise_to_power,
         packing::{pack_game, unpack_game, revive_cell},
         constants::{
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
+            INITIAL_ADMIN
         }
     };
+    use debug::PrintTrait;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -43,8 +51,6 @@ mod GoL2 {
     #[abi(embed_v0)]
     impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
     #[abi(embed_v0)]
-    impl ERC20MetadataImpl = ERC20Component::ERC20MetadataImpl<ContractState>;
-    #[abi(embed_v0)]
     impl SafeAllowanceImpl = ERC20Component::SafeAllowanceImpl<ContractState>;
     impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
@@ -60,6 +66,8 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
+        /// Has contract been migrated to cairo1
+        is_migrated: bool,
         /// Component Storage
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
@@ -121,7 +129,34 @@ mod GoL2 {
     }
 
     #[external(v0)]
+    impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
+        fn decimals(self: @ContractState) -> u8 {
+            0
+        }
+
+        fn name(self: @ContractState) -> felt252 {
+            self.erc20.name()
+        }
+
+        fn symbol(self: @ContractState) -> felt252 {
+            self.erc20.symbol()
+        }
+    }
+
+    #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
+        fn migrate(ref self: ContractState, new_class_hash: ClassHash) {
+            let admin = contract_address_try_from_felt252(INITIAL_ADMIN).unwrap();
+            assert(get_caller_address() == admin, 'Caller is not admin');
+            assert(!self.is_migrated.read(), 'Contract already migrated');
+            /// The contract admin is currently stored in slot `Proxy_admin`, this places it in slot `Ownable_owner`
+            self.ownable.initializer(admin);
+            /// Toggles function uncallable again
+            self.is_migrated.write(true);
+            /// Removes proxy setup, switching to single upgradable contract setup
+            replace_class_syscall(new_class_hash);
+        }
+
         /// Read
         fn view_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
             self.stored_game.read((game_id, generation))
@@ -176,17 +211,16 @@ mod GoL2 {
         fn evolve_game(
             ref self: ContractState, game_id: felt252, user: ContractAddress
         ) -> (felt252, felt252) {
-            let generations = 1;
             let prev_generation = self.current_generation.read(game_id);
 
             self.assert_game_exists(game_id, prev_generation);
 
-            let new_generation = prev_generation + generations;
+            let new_generation = prev_generation + 1;
             /// Unpack game 
             let game_state = self.stored_game.read((game_id, prev_generation));
             let cells = unpack_game(game_state);
             /// Evolve game by # of generations     
-            let new_cell_states = evaluate_rounds(generations.try_into().unwrap(), cells);
+            let new_cell_states = evaluate_rounds(1, cells);
             let packed_game = pack_game(new_cell_states);
 
             self

@@ -18,3 +18,10 @@ casm = true
 name = "GOERLI"
 url = "https://starknet-goerli.infura.io/v3/196e369467a44d4aba5d458d308f4c1c"
 block_id.number = "911663"
+
+[[tool.snforge.fork]]
+name = "MAINNET"
+url = "https://starknet-mainnet.infura.io/v3/196e369467a44d4aba5d458d308f4c1c"
+block_id.number = "457106"
+
+

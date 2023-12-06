@@ -10,7 +10,7 @@ use gol2::{
         constants::{
             INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
             FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
-            GIVE_LIFE_CREDIT_REQUIREMENT
+            GIVE_LIFE_CREDIT_REQUIREMENT, INITIAL_ADMIN
         },
     }
 };
@@ -38,6 +38,10 @@ fn test_constants() {
     assert(LAST_ROW_INDEX == DIM - 1 && LAST_COL_INDEX == DIM - 1, 'Wrong LAST_ROW/COL_INDEX');
     assert(LAST_ROW_CELL_INDEX == DIM * DIM - DIM, 'Wrong LAST_ROW_CELL_INDEX');
     assert(LAST_COL_CELL_INDEX == DIM - 1, 'Wrong LAST_COL_CELL_INDEX');
+    assert(
+        INITIAL_ADMIN == 0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973,
+        'Wrong INITIAL_ADMIN'
+    );
 }
 
 #[test]

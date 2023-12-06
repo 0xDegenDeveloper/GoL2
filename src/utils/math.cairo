@@ -1,12 +1,11 @@
 /// Raises base to the power of exponent
-fn raise_to_power(base: u128, exponent: u128) -> u256 {
-    let mut i = 0;
+fn raise_to_power(base: u128, mut exponent: u128) -> u256 {
     let mut result: u256 = 1;
     loop {
-        if i >= exponent {
+        if exponent == 0 {
             break result;
         }
         result *= base.into();
-        i = i + 1;
+        exponent -= 1;
     }
 }

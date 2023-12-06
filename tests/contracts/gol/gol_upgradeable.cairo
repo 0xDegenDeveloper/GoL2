@@ -35,20 +35,21 @@ fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
 }
 
 #[test]
+#[fork("GOERLI")]
 fn test_upgrade_as_owner() {
     start_prank(CheatTarget::All(()), contract_address_const::<'admin'>());
 
     let gol = deploy_contract('GoL2');
     let hash_init = get_class_hash(gol.contract_address);
-    let new_hash = declare('TestContract').class_hash;
+    let test_hash = declare('TestContract').class_hash;
 
-    IUpgradeableDispatcher { contract_address: gol.contract_address }.upgrade(new_hash);
+    IUpgradeableDispatcher { contract_address: gol.contract_address }.upgrade(test_hash);
     let new_gol = ITestTraitDispatcher { contract_address: gol.contract_address };
 
-    let hash_final = get_class_hash(gol.contract_address);
+    let upgraded_hash = get_class_hash(gol.contract_address);
 
-    assert(hash_init != hash_final, 'Hash not changed');
-    assert(hash_final == new_hash, 'Hash upgrade incorrect');
+    assert(hash_init != upgraded_hash, 'Hash not changed');
+    assert(upgraded_hash == test_hash, 'Hash upgrade incorrect');
     assert(new_gol.x() == 0, 'New is missing ()s');
     stop_prank(CheatTarget::All(()));
 }
