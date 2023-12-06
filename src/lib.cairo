@@ -7,5 +7,6 @@ mod utils {
 
 mod contracts {
     mod gol;
+    mod nft;
     mod test_contract;
 }

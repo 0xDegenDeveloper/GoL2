@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 950 950">
+  <g transform="translate(5 5)" stroke="#7f8e9b" >
+    <rect width="900" height="900" fill="#1e222b" />
+    <g stroke="#5e6266" stroke-width="1" >
+      <line x1="0" y1="60" x2="900" y2="60"/>
+      <line x1="0" y1="120" x2="900" y2="120"/>
+      <line x1="0" y1="180" x2="900" y2="180"/>
+      <line x1="0" y1="240" x2="900" y2="240"/>
+      <line x1="0" y1="300" x2="900" y2="300"/>
+      <line x1="0" y1="360" x2="900" y2="360"/>
+      <line x1="0" y1="420" x2="900" y2="420"/>
+      <line x1="0" y1="480" x2="900" y2="480"/>
+      <line x1="0" y1="540" x2="900" y2="540"/>
+      <line x1="0" y1="600" x2="900" y2="600"/>
+      <line x1="0" y1="660" x2="900" y2="660"/>
+      <line x1="0" y1="720" x2="900" y2="720"/>
+      <line x1="0" y1="780" x2="900" y2="780"/>
+      <line x1="0" y1="840" x2="900" y2="840"/>
+      <line x1="60" y1="0" x2="60" y2="900"/>
+      <line x1="120" y1="0" x2="120" y2="900"/>
+      <line x1="180" y1="0" x2="180" y2="900"/>
+      <line x1="240" y1="0" x2="240" y2="900"/>
+      <line x1="300" y1="0" x2="300" y2="900"/>
+      <line x1="360" y1="0" x2="360" y2="900"/>
+      <line x1="420" y1="0" x2="420" y2="900"/>
+      <line x1="480" y1="0" x2="480" y2="900"/>
+      <line x1="540" y1="0" x2="540" y2="900"/>
+      <line x1="600" y1="0" x2="600" y2="900"/>
+      <line x1="660" y1="0" x2="660" y2="900"/>
+      <line x1="720" y1="0" x2="720" y2="900"/>
+      <line x1="780" y1="0" x2="780" y2="900"/>
+      <line x1="840" y1="0" x2="840" y2="900"/>
+    </g>
+    <g fill="#dff17b" stroke="#dff17b" stroke-width="0.5" >
+      <rect width="60" height="60" transform="translate(60 0)" />
+      <rect width="60" height="60" transform="translate(0 60)" />
+      <rect width="60" height="60" transform="translate(120 180)" />
+      <rect width="60" height="60" transform="translate(840 180)" />
+      <rect width="60" height="60" transform="translate(840 240)" />
+      <rect width="60" height="60" transform="translate(840 840)" />
+    </g>
+    <rect width="900" height="900" fill="none" stroke="#0a0c10" stroke-width="5"/>
+  </g>
+</svg>

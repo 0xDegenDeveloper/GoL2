@@ -5,6 +5,7 @@ trait IGoL2<TContractState> {
     /// Read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
+    fn get_snapshot_creator(self: @TContractState, generation: felt252) -> ContractAddress;
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
@@ -66,6 +67,8 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
+        /// Map for the owner of each snapshot (of the infinite game)
+        snapshot_creator: LegacyMap<felt252, ContractAddress>,
         /// Has contract been migrated to cairo1
         is_migrated: bool,
         /// Component Storage
@@ -166,6 +169,11 @@ mod GoL2 {
             self.current_generation.read(game_id)
         }
 
+        fn get_snapshot_creator(self: @ContractState, generation: felt252) -> ContractAddress {
+            // todo ?: check if generation exists or is pre migration
+            self.snapshot_creator.read(generation)
+        }
+
         /// Write 
         fn create(ref self: ContractState, game_state: felt252) {
             let caller = self.ensure_user();
@@ -212,7 +220,6 @@ mod GoL2 {
             ref self: ContractState, game_id: felt252, user: ContractAddress
         ) -> (felt252, felt252) {
             let prev_generation = self.current_generation.read(game_id);
-
             self.assert_game_exists(game_id, prev_generation);
 
             let new_generation = prev_generation + 1;
@@ -222,6 +229,10 @@ mod GoL2 {
             /// Evolve game by # of generations     
             let new_cell_states = evaluate_rounds(1, cells);
             let packed_game = pack_game(new_cell_states);
+            /// Save snapshot creator if game_id is INFINITE_GAME_GENESIS
+            if game_id == INFINITE_GAME_GENESIS {
+                self.snapshot_creator.write(new_generation, user);
+            }
 
             self
                 .emit(

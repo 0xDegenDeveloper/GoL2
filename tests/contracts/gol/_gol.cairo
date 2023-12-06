@@ -61,6 +61,26 @@ fn test_get_current_generation() {
 }
 
 #[test]
+fn test_get_snapshot_creator() {
+    let gol = deploy_contract('GoL2');
+    let user = contract_address_const::<'user'>();
+    let user2 = contract_address_const::<'user2'>();
+    start_prank(CheatTarget::All(()), user);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    stop_prank(CheatTarget::All(()));
+    start_prank(CheatTarget::All(()), user2);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    stop_prank(CheatTarget::All(()));
+
+    let creator1 = gol.get_snapshot_creator(1);
+    let creator2 = gol.get_snapshot_creator(2);
+    let creator3 = gol.get_snapshot_creator(3);
+    assert(creator1 == contract_address_const::<''>(), 'Invalid creator1');
+    assert(creator2 == user, 'Invalid creator2');
+    assert(creator3 == user2, 'Invalid creator3');
+}
+
+#[test]
 fn test_create() {
     let gol = deploy_contract('GoL2');
     let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
@@ -110,6 +130,21 @@ fn test_create() {
         );
 
     stop_prank(CheatTarget::All(()));
+
+    /// test that no snapshots recorded for non INFINITE_GAME_GENESIS
+    let caller = contract_address_const::<'caller'>();
+    start_prank(CheatTarget::All(()), caller);
+    gol.evolve('gamestate');
+    stop_prank(CheatTarget::All(()));
+    let creator10 = gol
+        .get_snapshot_creator(10); // evolutions 2-11 were done by creator to get credits above
+    let creator11 = gol.get_snapshot_creator(11);
+    let creator12 = gol.get_snapshot_creator(12);
+    let creator13 = gol.get_snapshot_creator(13);
+    assert(creator10 == creator, 'Invalid creator10');
+    assert(creator11 == creator, 'Invalid creator11');
+    assert(creator12 == contract_address_const::<''>(), 'Invalid creator12');
+    assert(creator13 == contract_address_const::<''>(), 'Invalid creator13');
 }
 
 #[test]
