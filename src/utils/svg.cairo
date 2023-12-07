@@ -6,7 +6,8 @@ use gol2::utils::{
     packing::{unpack_game}
 };
 use core::to_byte_array::FormatAsByteArrayImpl;
-// use alexandria::{ToAsciiTrait};
+use alexandria_ascii::ToAsciiTrait;
+
 
 // create .svg file as felt array (and later on byte array)
 fn make_svg_array(game_state: felt252) -> Array<felt252> {
@@ -67,14 +68,19 @@ fn make_svg_array(game_state: felt252) -> Array<felt252> {
 }
 
 fn add_line(ref svg_array: Array<felt252>, x1: felt252, y1: felt252, x2: felt252, y2: felt252) {
+    let x1_int: u32 = x1.try_into().unwrap();
+    let y1_int: u32 = y1.try_into().unwrap();
+    let x2_int: u32 = x2.try_into().unwrap();
+    let y2_int: u32 = y2.try_into().unwrap();
+
     svg_array.append('<line x1="');
-    svg_array.append(x1);
+    svg_array.append(x1_int.to_ascii());
     svg_array.append('" y1="');
-    svg_array.append(y1);
+    svg_array.append(y1_int.to_ascii());
     svg_array.append('" x2="');
-    svg_array.append(x2);
+    svg_array.append(x2_int.to_ascii());
     svg_array.append('" y2="');
-    svg_array.append(y2);
+    svg_array.append(y2_int.to_ascii());
     svg_array.append('"/>');
 }
 
@@ -85,14 +91,18 @@ fn add_rect(
     translate_x: felt252,
     translate_y: felt252
 ) {
+    let w_int: u32 = w.try_into().unwrap();
+    let h_int: u32 = h.try_into().unwrap();
+    let translate_x_int: u32 = translate_x.try_into().unwrap();
+    let translate_y_int: u32 = translate_y.try_into().unwrap();
     svg_array.append('<rect width="');
-    svg_array.append(w);
+    svg_array.append(w_int.to_ascii());
     svg_array.append(' height="');
-    svg_array.append(h);
+    svg_array.append(h_int.to_ascii());
     svg_array.append(' transform="translate(');
-    svg_array.append(translate_x);
+    svg_array.append(translate_x_int.to_ascii());
     svg_array.append(' ');
-    svg_array.append(translate_y);
+    svg_array.append(translate_y_int.to_ascii());
     svg_array.append(')"/>');
 }
 // translate felt/byte array to u64 or other encoding with browser url front part

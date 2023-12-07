@@ -9,13 +9,16 @@ use gol2::utils::{
 use core::byte_array::{ByteArrayTrait};
 // use core::to_byte_array::{FormatAsByteArrayTrait::format_as_byte_array};
 use core::bytes_31::bytes31_try_from_felt252;
-use debug::{PrintTrait};
-use alexandria_encoding::base64::{Base64Encoder, Base64Decoder, Base64UrlEncoder, Base64UrlDecoder};
+use debug::{PrintTrait, ArrayGenericPrintImpl};
+// use alexandria_encoding::base64::{Base64Encoder, Base64Decoder, Base64UrlEncoder, Base64UrlDecoder};
 use zeroable::Zeroable;
+use alexandria_ascii::ToAsciiTrait;
+
 
 #[test]
 fn test_make_svg_array() {
     let mut svg_array = make_svg_array(0x1);
+    svg_array.print();
 // let x: ByteArray = 'testing'.format_as_byte_array(64);
 // let b = bytes31_try_from_felt252('test').unwrap();
 // let bb: u8 = b.into();
