@@ -3,6 +3,7 @@ mod utils {
     mod life_rules;
     mod math;
     mod packing;
+    mod svg;
 }
 
 mod contracts {
