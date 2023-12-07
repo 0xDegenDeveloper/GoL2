@@ -9,7 +9,7 @@ use core::to_byte_array::FormatAsByteArrayImpl;
 // use alexandria::{ToAsciiTrait};
 
 // create .svg file as felt array (and later on byte array)
-fn make_svg_array(game_state: felt252) {
+fn make_svg_array(game_state: felt252) -> Array<felt252> {
     let mut svg_array = array![
         /// Start svg
         '<svg xmlns=',
@@ -35,7 +35,7 @@ fn make_svg_array(game_state: felt252) {
         let v = i * 60;
         add_line(ref svg_array, 0, v, 900, v);
         add_line(ref svg_array, v, 0, v, 900);
-        i -= 1;
+        i += 1;
     };
 
     /// Alive cells
@@ -63,6 +63,7 @@ fn make_svg_array(game_state: felt252) {
     svg_array.append('stroke="#0a0c10" ');
     svg_array.append('stroke-width="5"/>');
     svg_array.append('</g></svg>');
+    svg_array
 }
 
 fn add_line(ref svg_array: Array<felt252>, x1: felt252, y1: felt252, x2: felt252, y2: felt252) {
