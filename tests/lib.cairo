@@ -1,6 +1,5 @@
 mod utils {
     mod _life_rules;
-    mod _math;
     mod _packing;
     mod _svg;
 }

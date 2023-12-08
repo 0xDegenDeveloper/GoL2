@@ -6,11 +6,11 @@ use snforge_std::{
 use gol2::{
     contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
     utils::{
-        math::raise_to_power,
         constants::{
             INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
             FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
-            GIVE_LIFE_CREDIT_REQUIREMENT, INITIAL_ADMIN, BOARD_SQUARED
+            GIVE_LIFE_CREDIT_REQUIREMENT, LOW_ARRAY_LEN, HIGH_ARRAY_LEN, INITIAL_ADMIN,
+            BOARD_SQUARED
         },
     }
 };
@@ -38,6 +38,8 @@ fn test_constants() {
     assert(LAST_ROW_INDEX == DIM - 1 && LAST_COL_INDEX == DIM - 1, 'Wrong LAST_ROW/COL_INDEX');
     assert(LAST_ROW_CELL_INDEX == DIM * DIM - DIM, 'Wrong LAST_ROW_CELL_INDEX');
     assert(LAST_COL_CELL_INDEX == DIM - 1, 'Wrong LAST_COL_CELL_INDEX');
+    assert(LOW_ARRAY_LEN == 128, 'Wrong LOW_ARRAY_LEN');
+    assert(HIGH_ARRAY_LEN == 97, 'Wrong HIGH_ARRAY_LEN');
     assert(BOARD_SQUARED == DIM * DIM, 'Wrong BOARD_SQUARED');
     assert(
         INITIAL_ADMIN == 0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973,

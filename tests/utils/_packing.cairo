@@ -1,6 +1,7 @@
-use gol2::{
-    utils::{math::raise_to_power, packing::{pack_cells, pack_game, unpack_game, revive_cell}}
+use gol2::utils::{
+    packing::{pack_cells, pack_game, unpack_game, revive_cell}, constants::{HIGH_ARRAY_LEN}
 };
+use alexandria_math::pow;
 
 #[test]
 fn test_pack_cells() {
@@ -211,5 +212,6 @@ fn test_revive_cell() {
     assert(revived == state + 2, 'Revived cell incorrect');
     /// Revive last cell (bottom right; 225th bit in binary representation)
     let revived: felt252 = revive_cell(224, state);
-    assert(revived == state + raise_to_power(2, 224).try_into().unwrap(), 'Revived cell incorrect');
+    let POW_2_224: u256 = u256 { low: 0, high: pow(2, HIGH_ARRAY_LEN.into() - 1) };
+    assert(revived == state + POW_2_224.try_into().unwrap(), 'Revived cell incorrect');
 }

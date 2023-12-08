@@ -17,7 +17,7 @@ use alexandria_ascii::ToAsciiTrait;
 
 #[test]
 fn test_make_svg_array() {
-    let mut svg_array = make_svg_array(0x1);
+    let mut svg_array = make_svg_array(3);
     svg_array.print();
 // let x: ByteArray = 'testing'.format_as_byte_array(64);
 // let b = bytes31_try_from_felt252('test').unwrap();

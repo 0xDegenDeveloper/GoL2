@@ -1,11 +1,12 @@
 use starknet::contract_address_const;
 use gol2::{
     contracts::gol::{GoL2, IGoL2Dispatcher, IGoL2DispatcherTrait},
-    utils::{math::raise_to_power, constants::INFINITE_GAME_GENESIS}
+    utils::constants::{INFINITE_GAME_GENESIS, LOW_ARRAY_LEN, HIGH_ARRAY_LEN}
 };
 
 use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget,};
 use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+use alexandria_math::pow;
 use debug::PrintTrait;
 
 #[test]
@@ -108,7 +109,10 @@ fn test_assert_valid_new_game() {
     GoL2::GoL2Internals::assert_valid_new_game(@state, 0);
     GoL2::GoL2Internals::assert_valid_new_game(@state, 1);
     GoL2::GoL2Internals::assert_valid_new_game(
-        @state, (raise_to_power(2, 225) - 1).try_into().unwrap()
+        @state,
+        (u256 { low: core::integer::BoundedInt::max(), high: pow(2, HIGH_ARRAY_LEN.into()) - 1 })
+            .try_into()
+            .unwrap()
     );
 }
 
@@ -176,7 +180,10 @@ fn test_assert_valid_new_game_too_big() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
     GoL2::GoL2Internals::assert_valid_new_game(
-        @state, (raise_to_power(2, 225)).try_into().unwrap()
+        @state,
+        (u256 { low: core::integer::BoundedInt::max(), high: pow(2, HIGH_ARRAY_LEN.into()) })
+            .try_into()
+            .unwrap()
     );
 }
 

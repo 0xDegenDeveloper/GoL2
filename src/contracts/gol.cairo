@@ -27,13 +27,13 @@ mod GoL2 {
         token::erc20::{ERC20Component, interface::IERC20Metadata}
     };
     use gol2::utils::{
-        life_rules::evaluate_rounds, math::raise_to_power,
-        packing::{pack_game, unpack_game, revive_cell},
+        life_rules::evaluate_rounds, packing::{pack_game, unpack_game, revive_cell},
         constants::{
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
-            BOARD_SQUARED, INITIAL_ADMIN
+            HIGH_ARRAY_LEN, BOARD_SQUARED, INITIAL_ADMIN
         }
     };
+    use alexandria_math::pow;
     use debug::PrintTrait;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
@@ -285,7 +285,8 @@ mod GoL2 {
         fn assert_valid_new_game(self: @ContractState, game: felt252) {
             self.assert_game_does_not_exist(game);
             /// max game => 225 bits all 1s => 2^225 - 1
-            assert(game.into() < (raise_to_power(2, BOARD_SQUARED.into())), 'Game size too big');
+            let game_int: u256 = game.into();
+            assert(game_int.high < (pow(2, HIGH_ARRAY_LEN.into())), 'Game size too big');
         }
 
         fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {

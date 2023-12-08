@@ -1,4 +1,5 @@
-use gol2::utils::{math::raise_to_power, constants::{DIM, BOARD_SQUARED}};
+use gol2::utils::constants::{DIM, LOW_ARRAY_LEN, HIGH_ARRAY_LEN, BOARD_SQUARED};
+use alexandria_math::pow;
 
 /// The game board is a 15x15 grid of cells:
 ///   0   1   2   3   4  ... 14  
@@ -32,8 +33,8 @@ fn pack_cells(cells: Array<felt252>) -> felt252 {
 
 /// Creates a cell array from a game state
 fn unpack_game(game: felt252) -> Array<felt252> {
-    let game_as_int: u256 = game.into();
-    assert(game_as_int < raise_to_power(2, BOARD_SQUARED.into()), 'Invalid game state (too large)');
+    let game_int: u256 = game.into();
+    assert(game_int.high < pow(2, HIGH_ARRAY_LEN.into()), 'Invalid game state (too large)');
     let mut cell_array = array![];
     let mut mask: u256 = 0x1;
     let mut i: usize = 0;
@@ -41,7 +42,7 @@ fn unpack_game(game: felt252) -> Array<felt252> {
         if i == BOARD_SQUARED {
             break;
         }
-        cell_array.append(if game_as_int & mask != 0 {
+        cell_array.append(if game_int & mask != 0 {
             1
         } else {
             0
@@ -60,6 +61,13 @@ fn pack_game(cells: Array<felt252>) -> felt252 {
 
 /// Toggles a cell index alive, returns the new game state
 fn revive_cell(cell_index: usize, current_state: felt252) -> felt252 {
-    let updated: u256 = current_state.into() | raise_to_power(2, cell_index.into());
+    let current_state_int: u256 = current_state.into();
+    let activated_bit: u256 = if cell_index < LOW_ARRAY_LEN.into() {
+        u256 { low: pow(2, cell_index.into()), high: 0 }
+    } else {
+        u256 { low: 0, high: pow(2, (cell_index - LOW_ARRAY_LEN).into()) }
+    };
+
+    let updated: u256 = current_state_int | activated_bit;
     updated.try_into().unwrap()
 }

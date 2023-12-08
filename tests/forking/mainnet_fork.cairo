@@ -5,14 +5,11 @@ use snforge_std::{
 };
 use gol2::{
     contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
-    utils::{
-        math::raise_to_power,
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
-            GIVE_LIFE_CREDIT_REQUIREMENT
-        },
-    }
+    utils::constants::{
+        INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
+        FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
+        GIVE_LIFE_CREDIT_REQUIREMENT
+    },
 };
 use openzeppelin::{
     access::ownable::{OwnableComponent, interface::{IOwnableDispatcher, IOwnableDispatcherTrait}},
