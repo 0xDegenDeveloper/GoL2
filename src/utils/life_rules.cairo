@@ -18,13 +18,13 @@ fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt25
 /// Apply the Game of Life rules (wrapping on edges).
 fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     let mut evolution = array![];
-    let mut i = cell_states.len();
+    let mut i = 0;
+    let stop = cell_states.len();
     loop {
-        if i == 0 {
+        if i == stop {
             break;
         }
-        let cell_idx: usize = 225 - i;
-        let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(cell_idx);
+        let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(i);
 
         /// How many neighbours are alive?
         let score = *cell_states[L]
@@ -39,7 +39,7 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
         evolution
             .append(
                 /// If alive
-                if *cell_states[cell_idx] == 1 {
+                if *cell_states[i] == 1 {
                     /// Remain alive.
                     if (score - 2) * (score - 3) == 0 {
                         1
@@ -58,7 +58,7 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
                     }
                 }
             );
-        i -= 1;
+        i += 1;
     };
     evolution
 }

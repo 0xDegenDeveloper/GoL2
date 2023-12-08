@@ -9,7 +9,7 @@ trait IGoL2<TContractState> {
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
-    fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
+    fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     /// .
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
 }
@@ -117,7 +117,7 @@ mod GoL2 {
         #[key]
         user_id: ContractAddress,
         generation: felt252,
-        cell_index: felt252,
+        cell_index: usize,
         state: felt252,
     }
 
@@ -170,7 +170,7 @@ mod GoL2 {
         }
 
         fn get_snapshot_creator(self: @ContractState, generation: felt252) -> ContractAddress {
-            // todo ?: check if generation exists or is pre migration
+            // todo: no repeat states ? 
             self.snapshot_creator.read(generation)
         }
 
@@ -190,7 +190,7 @@ mod GoL2 {
             self.reward_user(caller);
         }
 
-        fn give_life_to_cell(ref self: ContractState, cell_index: felt252) {
+        fn give_life_to_cell(ref self: ContractState, cell_index: usize) {
             let caller = self.ensure_user();
             let (generation, current_game_state) = self.get_last_state();
             self.assert_valid_cell_index(cell_index);
@@ -298,15 +298,15 @@ mod GoL2 {
             (generation, game_state)
         }
 
-        fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
-            assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
+        fn assert_valid_cell_index(self: @ContractState, cell_index: usize) {
+            assert(cell_index < DIM * DIM, 'Cell index out of range');
         }
 
         fn activate_cell(
             ref self: ContractState,
             generation: felt252,
             caller: ContractAddress,
-            cell_index: felt252,
+            cell_index: usize,
             current_state: felt252
         ) {
             self.assert_valid_cell_index(cell_index);

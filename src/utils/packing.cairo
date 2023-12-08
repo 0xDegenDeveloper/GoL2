@@ -59,7 +59,7 @@ fn pack_game(cells: Array<felt252>) -> felt252 {
 }
 
 /// Toggles a cell index alive, returns the new game state
-fn revive_cell(cell_index: felt252, current_state: felt252) -> felt252 {
-    let updated: u256 = current_state.into() | raise_to_power(2, cell_index.try_into().unwrap());
+fn revive_cell(cell_index: usize, current_state: felt252) -> felt252 {
+    let updated: u256 = current_state.into() | raise_to_power(2, cell_index.into());
     updated.try_into().unwrap()
 }
