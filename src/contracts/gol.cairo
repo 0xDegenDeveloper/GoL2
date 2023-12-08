@@ -31,7 +31,7 @@ mod GoL2 {
         packing::{pack_game, unpack_game, revive_cell},
         constants::{
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
-            INITIAL_ADMIN
+            BOARD_SQUARED, INITIAL_ADMIN
         }
     };
     use debug::PrintTrait;
@@ -282,7 +282,7 @@ mod GoL2 {
         fn assert_valid_new_game(self: @ContractState, game: felt252) {
             self.assert_game_does_not_exist(game);
             /// max game => 225 bits all 1s => 2^225 - 1
-            assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
+            assert(game.into() < (raise_to_power(2, BOARD_SQUARED.into())), 'Game size too big');
         }
 
         fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
@@ -299,7 +299,7 @@ mod GoL2 {
         }
 
         fn assert_valid_cell_index(self: @ContractState, cell_index: usize) {
-            assert(cell_index < DIM * DIM, 'Cell index out of range');
+            assert(cell_index < BOARD_SQUARED, 'Cell index out of range');
         }
 
         fn activate_cell(

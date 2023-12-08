@@ -1,4 +1,4 @@
-use gol2::utils::{math::raise_to_power, constants::DIM};
+use gol2::utils::{math::raise_to_power, constants::{DIM, BOARD_SQUARED}};
 
 /// The game board is a 15x15 grid of cells:
 ///   0   1   2   3   4  ... 14  
@@ -33,12 +33,12 @@ fn pack_cells(cells: Array<felt252>) -> felt252 {
 /// Creates a cell array from a game state
 fn unpack_game(game: felt252) -> Array<felt252> {
     let game_as_int: u256 = game.into();
-    assert(game_as_int < raise_to_power(2, (DIM * DIM).into()), 'Invalid game state (too large)');
+    assert(game_as_int < raise_to_power(2, BOARD_SQUARED.into()), 'Invalid game state (too large)');
     let mut cell_array = array![];
     let mut mask: u256 = 0x1;
-    let mut i: usize = DIM * DIM;
+    let mut i: usize = 0;
     loop {
-        if i == 0 {
+        if i == BOARD_SQUARED {
             break;
         }
         cell_array.append(if game_as_int & mask != 0 {
@@ -47,14 +47,14 @@ fn unpack_game(game: felt252) -> Array<felt252> {
             0
         });
         mask *= 2;
-        i -= 1;
+        i += 1;
     };
     cell_array
 }
 
 /// Creates a game state from a cell array
 fn pack_game(cells: Array<felt252>) -> felt252 {
-    assert(cells.len() == DIM * DIM, 'Invalid cell array length');
+    assert(cells.len() == BOARD_SQUARED, 'Invalid cell array length');
     pack_cells(cells)
 }
 
