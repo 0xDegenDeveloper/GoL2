@@ -8,6 +8,8 @@ trait ITestTrait<TContractState> {
 
 #[starknet::contract]
 mod TestContract {
+    use debug::PrintTrait;
+
     use starknet::{get_caller_address, ContractAddress, ClassHash};
     #[constructor]
     fn constructor(ref self: ContractState) {}
@@ -26,6 +28,12 @@ mod TestContract {
         }
         fn x(self: @ContractState) -> felt252 {
             self.x.read()
+        }
+    }
+    #[generate_trait]
+    impl InternalImpl of InternalTrait {
+        fn initializer(ref self: ContractState) {
+            self.x.write(123);
         }
     }
 }
