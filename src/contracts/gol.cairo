@@ -128,6 +128,7 @@ mod GoL2 {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
+            self.initializer();
         }
     }
 
@@ -202,6 +203,8 @@ mod GoL2 {
     /// Internal Functions
     #[generate_trait]
     impl GoL2Internals of GoL2InternalTrait {
+        fn initializer(ref self: ContractState) {}
+
         fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
             self.erc20._burn(user, credit_requirement.into());
         }
