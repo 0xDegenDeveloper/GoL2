@@ -201,7 +201,7 @@ mod GoL2 {
 
     /// Internal Functions
     #[generate_trait]
-    impl HelperImpl of HelperTrait {
+    impl GoL2Internals of GoL2InternalTrait {
         fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
             self.erc20._burn(user, credit_requirement.into());
         }
