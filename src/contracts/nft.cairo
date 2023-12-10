@@ -6,6 +6,14 @@ trait IGoLNFT<TContractState> {
     fn get_whitelist_root(self: @TContractState) -> felt252;
     /// Write 
     fn set_whitelist_root(ref self: TContractState, root: felt252);
+    fn whitelist_mint(
+        ref self: TContractState, generation: felt252, proof: Array<felt252>, root: felt252
+    );
+    fn mint(ref self: TContractState, generation: felt252);
+    fn withdraw(
+        ref self: TContractState, token_addr: ContractAddress, amount: u256, to: ContractAddress
+    );
+// batch mints ? 
 }
 
 
@@ -19,14 +27,17 @@ mod GoL2NFT {
         access::ownable::OwnableComponent, introspection::src5::SRC5Component,
         upgrades::{UpgradeableComponent, interface::IUpgradeable},
         token::erc721::{ERC721Component, interface::IERC721Metadata},
+        token::erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, interface::IERC20},
     };
-    use gol2::utils::{
-        life_rules::evaluate_rounds, math::raise_to_power,
-        packing::{pack_game, unpack_game, revive_cell},
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
-            INITIAL_ADMIN
-        }
+    use gol2::{
+        utils::{
+            life_rules::evaluate_rounds, packing::{pack_game, unpack_game, revive_cell},
+            constants::{
+                INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
+                INITIAL_ADMIN
+            },
+        },
+        contracts::gol::{GoL2, IGoL2Dispatcher, IGoL2DispatcherTrait,}
     };
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
@@ -69,6 +80,11 @@ mod GoL2NFT {
 
     #[storage]
     struct Storage {
+        /// GoL2 game address
+        gol2_addr: ContractAddress,
+        /// Mint price (wei)
+        mint_price: u256,
+        mint_token_addr: ContractAddress,
         /// Merkle root for whitelist mints 
         whitelist_root: felt252,
         /// Component Storage
@@ -139,132 +155,52 @@ mod GoL2NFT {
             self.ownable.assert_only_owner();
             self.whitelist_root.write(root);
         }
+
+        fn mint(ref self: ContractState, generation: felt252) {
+            /// verify caller is generation owner
+            let caller = get_caller_address();
+            let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
+            /// might need to pass snapshot state instead (depends on if duplicates or not)
+            let creator = gol.get_snapshot_creator(generation);
+            assert(caller == creator, 'Only snapshot creator can mint');
+            /// pay for mint
+            self.pay(caller);
+            /// mint token
+            self.erc721._safe_mint(caller, generation.into(), array![].span());
+        }
+
+        fn whitelist_mint(
+            ref self: ContractState, generation: felt252, proof: Array<felt252>, root: felt252
+        ) {
+            let caller = get_caller_address();
+
+            // verify that hash([caller, generation] + proof) is able to create the merkle root 
+
+            /// pay for mint
+            self.pay(caller);
+            /// mint token
+            self.erc721._safe_mint(caller, generation.into(), array![].span())
+        }
+
+        fn withdraw(
+            ref self: ContractState, token_addr: ContractAddress, amount: u256, to: ContractAddress
+        ) {
+            self.ownable.assert_only_owner();
+            let token = ERC20ABIDispatcher { contract_address: token_addr };
+            let success = token.transfer_from(starknet::get_contract_address(), to, amount);
+            assert(success, 'ERC20 transfer failed');
+        }
     }
-/// Internal Functions
-// #[generate_trait]
-// impl HelperImpl of HelperTrait {
-//     fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
-//         self.erc20._burn(user, credit_requirement.into());
-//     }
 
-//     fn reward_user(ref self: ContractState, user: ContractAddress) {
-//         self.erc20._mint(user, 1);
-//     }
-
-//     fn ensure_user(self: @ContractState) -> ContractAddress {
-//         let caller = get_caller_address();
-//         assert(caller.is_non_zero(), 'User not authenticated');
-//         caller
-//     }
-
-//     fn evolve_game(
-//         ref self: ContractState, game_id: felt252, user: ContractAddress
-//     ) -> (felt252, felt252) {
-//         let prev_generation = self.current_generation.read(game_id);
-
-//         self.assert_game_exists(game_id, prev_generation);
-
-//         let new_generation = prev_generation + 1;
-//         /// Unpack game 
-//         let game_state = self.stored_game.read((game_id, prev_generation));
-//         let cells = unpack_game(game_state);
-//         /// Evolve game by # of generations     
-//         let new_cell_states = evaluate_rounds(1, cells);
-//         let packed_game = pack_game(new_cell_states);
-
-//         self
-//             .emit(
-//                 GameEvolved {
-//                     user_id: user,
-//                     game_id: game_id,
-//                     generation: new_generation,
-//                     state: packed_game
-//                 }
-//             );
-//         (new_generation, packed_game)
-//     }
-
-//     fn save_game(
-//         ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
-//     ) {
-//         self.stored_game.write((game_id, generation), packed_game);
-//     }
-
-//     fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
-//         self.current_generation.write(game_id, generation);
-//     }
-
-//     fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
-//         assert(self.current_generation.read(game_id) != 0, 'Game has not been started');
-//         let current_generation: u256 = self.current_generation.read(game_id).into();
-//         assert(generation.into() <= current_generation, 'Generation does not exist yet');
-//     }
-
-//     fn assert_game_does_not_exist(self: @ContractState, game_id: felt252) {
-//         assert(
-//             self.stored_game.read((game_id, 1)) + self.current_generation.read(game_id) == 0,
-//             'Game already exists'
-//         );
-//     }
-
-//     fn get_game(self: @ContractState, game_id: felt252, generation: felt252) -> felt252 {
-//         self.assert_game_exists(game_id, generation);
-//         self.stored_game.read((game_id, generation))
-//     }
-
-//     fn get_generation(self: @ContractState, game_id: felt252) -> felt252 {
-//         self.current_generation.read(game_id)
-//     }
-
-//     /// Creator Mode
-//     fn assert_valid_new_game(self: @ContractState, game: felt252) {
-//         self.assert_game_does_not_exist(game);
-//         /// max game => 225 bits all 1s => 2^225 - 1
-//         assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
-//     }
-
-//     fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
-//         self.save_game(game_state, 1, game_state);
-//         self.save_generation_id(game_state, 1);
-//         self.emit(GameCreated { user_id: user_id, game_id: game_state, state: game_state });
-//     }
-
-//     /// Infinite Mode
-//     fn get_last_state(self: @ContractState) -> (felt252, felt252) {
-//         let generation = self.current_generation.read(INFINITE_GAME_GENESIS);
-//         let game_state = self.stored_game.read((INFINITE_GAME_GENESIS, generation));
-//         (generation, game_state)
-//     }
-
-//     fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
-//         assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
-//     }
-
-//     fn activate_cell(
-//         ref self: ContractState,
-//         generation: felt252,
-//         caller: ContractAddress,
-//         cell_index: felt252,
-//         current_state: felt252
-//     ) {
-//         self.assert_valid_cell_index(cell_index);
-//         let packed_game = revive_cell(cell_index, current_state);
-
-//         assert(packed_game != current_state, 'No changes made to game');
-
-//         /// Generation does not increment when cell is activated
-//         self.save_game(INFINITE_GAME_GENESIS, generation, packed_game);
-
-//         self
-//             .emit(
-//                 CellRevived {
-//                     user_id: caller,
-//                     generation: generation,
-//                     cell_index: cell_index,
-//                     state: packed_game
-//                 }
-//             );
-//     }
-// }
+    /// Internal Functions
+    #[generate_trait]
+    impl InternalImpl of InternalTrait {
+        fn pay(ref self: ContractState, user: ContractAddress) {
+            let token = ERC20ABIDispatcher { contract_address: self.mint_token_addr.read() };
+            let success = token
+                .transfer_from(user, starknet::get_contract_address(), self.mint_price.read());
+            assert(success, 'ERC20 transfer failed');
+        }
+    }
 }
 
