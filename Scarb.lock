@@ -15,6 +15,14 @@ version = "0.1.0"
 source = "git+https://github.com/keep-starknet-strange/alexandria?tag=cairo-v2.2.0#f37d73d8a8248e4d8dc65de3949333e30bda022f"
 
 [[package]]
+name = "alexandria_encoding"
+version = "0.1.0"
+source = "git+https://github.com/keep-starknet-strange/alexandria?tag=cairo-v2.2.0#f37d73d8a8248e4d8dc65de3949333e30bda022f"
+dependencies = [
+ "alexandria_math",
+]
+
+[[package]]
 name = "alexandria_math"
 version = "0.2.0"
 source = "git+https://github.com/keep-starknet-strange/alexandria?tag=cairo-v2.2.0#f37d73d8a8248e4d8dc65de3949333e30bda022f"
@@ -27,6 +35,7 @@ name = "gol2"
 version = "0.1.0"
 dependencies = [
  "alexandria_ascii",
+ "alexandria_encoding",
  "alexandria_math",
  "openzeppelin",
  "snforge_std",

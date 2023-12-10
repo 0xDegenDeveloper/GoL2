@@ -10,6 +10,7 @@ snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry.git", tag 
 openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.8.0"}
 alexandria_ascii = { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.2.0"}
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.2.0"}
+alexandria_encoding = { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.2.0"}
 [[target.starknet-contract]]
 sierra = true
 casm = true
