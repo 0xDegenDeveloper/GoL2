@@ -5,12 +5,12 @@ trait IGoL2<TContractState> {
     /// Read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
-    fn get_snapshot_creator(self: @TContractState, generation: felt252) -> ContractAddress;
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     /// .
+    fn initializer(ref self: TContractState);
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
 }
 
@@ -35,6 +35,7 @@ mod GoL2 {
     };
     use alexandria_math::pow;
     use debug::PrintTrait;
+    use super::{IGoL2Dispatcher, IGoL2DispatcherTrait};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -67,8 +68,6 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
-        /// Map for the owner of each snapshot (of the infinite game)
-        snapshot_creator: LegacyMap<felt252, ContractAddress>,
         /// Has contract been migrated to cairo1
         is_migrated: bool,
         /// Component Storage
@@ -78,6 +77,8 @@ mod GoL2 {
         upgradeable: UpgradeableComponent::Storage,
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
+        /// Slot of old proxy admin address, used for migration to ownable/upgradable components
+        Proxy_admin: felt252,
     }
 
     #[event]
@@ -128,7 +129,7 @@ mod GoL2 {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
-            self.initializer();
+            IGoL2Dispatcher { contract_address: starknet::get_contract_address() }.initializer();
         }
     }
 
@@ -149,12 +150,15 @@ mod GoL2 {
 
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
+        /// Empty function, used for interface definition if future upgrades to the contract
+        fn initializer(ref self: ContractState) {}
+
         fn migrate(ref self: ContractState, new_class_hash: ClassHash) {
-            let admin = contract_address_try_from_felt252(INITIAL_ADMIN).unwrap();
-            assert(get_caller_address() == admin, 'Caller is not admin');
+            let prev_admin = contract_address_try_from_felt252(self.Proxy_admin.read()).unwrap();
+            assert(get_caller_address() == prev_admin, 'Caller is not prev admin');
             assert(!self.is_migrated.read(), 'Contract already migrated');
             /// The contract admin is currently stored in slot `Proxy_admin`, this places it in slot `Ownable_owner`
-            self.ownable.initializer(admin);
+            self.ownable.initializer(prev_admin);
             /// Toggles function uncallable again
             self.is_migrated.write(true);
             /// Removes proxy setup, switching to single upgradable contract setup
@@ -168,11 +172,6 @@ mod GoL2 {
 
         fn get_current_generation(self: @ContractState, game_id: felt252) -> felt252 {
             self.current_generation.read(game_id)
-        }
-
-        fn get_snapshot_creator(self: @ContractState, generation: felt252) -> ContractAddress {
-            // todo: no repeat states ? 
-            self.snapshot_creator.read(generation)
         }
 
         /// Write 
@@ -203,8 +202,6 @@ mod GoL2 {
     /// Internal Functions
     #[generate_trait]
     impl GoL2Internals of GoL2InternalTrait {
-        fn initializer(ref self: ContractState) {}
-
         fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
             self.erc20._burn(user, credit_requirement.into());
         }
@@ -232,10 +229,6 @@ mod GoL2 {
             /// Evolve game by # of generations     
             let new_cell_states = evaluate_rounds(1, cells);
             let packed_game = pack_game(new_cell_states);
-            /// Save snapshot creator if game_id is INFINITE_GAME_GENESIS
-            if game_id == INFINITE_GAME_GENESIS {
-                self.snapshot_creator.write(new_generation, user);
-            }
 
             self
                 .emit(

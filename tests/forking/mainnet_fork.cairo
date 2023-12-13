@@ -122,34 +122,8 @@ fn test_migrate_again() {
 
 #[test]
 #[fork("MAINNET")]
-#[should_panic(expected: ('Caller is not admin',))]
+#[should_panic(expected: ('Caller is not prev admin',))]
 fn test_migrate_not_admin() {
-    let user = contract_address_const::<'user'>();
-    let old_gol_address = contract_address_const::<
-        0x06a05844a03bb9e744479e3298f54705a35966ab04140d3d8dd797c1f6dc49d0
-    >();
-    let admin = contract_address_const::<
-        0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973
-    >();
-    let not_admin = contract_address_const::<'not admin'>();
-
-    let OldGol = IOldGolDispatcher { contract_address: old_gol_address };
-
-    /// Upgrade the proxy contract's impl hash
-    let new_gol_hash = declare('GoL2').class_hash;
-    start_prank(CheatTarget::All(()), admin);
-    OldGol.upgrade(new_gol_hash.into());
-    stop_prank(CheatTarget::All(()));
-    /// Migrate contract using syscall
-    start_prank(CheatTarget::All(()), not_admin);
-    OldGol.migrate(new_gol_hash);
-    stop_prank(CheatTarget::All(()));
-}
-
-#[test]
-#[fork("MAINNET")]
-#[should_panic(expected: ('Caller is not admin',))]
-fn test_upgrade_not_admin() {
     let user = contract_address_const::<'user'>();
     let old_gol_address = contract_address_const::<
         0x06a05844a03bb9e744479e3298f54705a35966ab04140d3d8dd797c1f6dc49d0

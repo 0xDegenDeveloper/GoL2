@@ -46,9 +46,7 @@ fn test_upgrade_as_owner() {
 
     assert(hash_init != upgraded_hash, 'Hash not changed');
     assert(upgraded_hash == test_hash, 'Hash upgrade incorrect');
-    // new_gol.x().print();
-    // todo: this should be set in the upgrade initialization unless franco says otherwise
-    // assert(new_gol.x() == 123, 'Initializer failed');
+    assert(new_gol.x() == 123, 'Initializer failed');
     stop_prank(CheatTarget::All(()));
 }
 
