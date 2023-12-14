@@ -5,18 +5,19 @@ mod utils {
 
 mod contracts {
     mod gol {
-        // mod gas_tests;
         mod _gol;
         mod gol_internal;
         mod gol_ownable;
         mod gol_upgradeable;
+        mod gas;
     }
+
     mod nft {
         mod _nft;
         mod uri_svg;
     }
 }
 mod forking {
-    mod mainnet_fork;
+    mod mainnet;
 }
 
