@@ -1,7 +1,7 @@
 use gol2::utils::{constants::DIM, packing::{unpack_game}};
 use alexandria_ascii::ToAsciiTrait;
 
-/// Creates SVG string from gamestate
+/// Creates SVG string from a gamestate felt252
 /// URI special chars are encoded like so:
 /// % -> %25, space -> %20, " -> %22, # -> %23, < -> %3C, > -> %3E.
 /// SVG special chars are double encoded so that 

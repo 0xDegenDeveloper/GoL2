@@ -11,7 +11,7 @@ trait ITestTrait<TContractState> {
 mod TestContract {
     use debug::PrintTrait;
 
-    use starknet::{get_caller_address, ContractAddress, ClassHash};
+    use starknet::{get_caller_address, get_contract_address, ContractAddress, ClassHash};
     #[constructor]
     fn constructor(ref self: ContractState) {}
     #[storage]
@@ -31,6 +31,7 @@ mod TestContract {
             self.x.read()
         }
         fn initializer(ref self: ContractState) {
+            // assert(get_caller_address() == get_contract_address(), 'Caller not self');
             self.x.write(123);
         }
     }

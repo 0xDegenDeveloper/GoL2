@@ -96,16 +96,16 @@ fn make_uri_array(token_id: u256, gamestate: felt252, generation: felt252) -> Ar
     }
     /// Image
     uri.append('","image":"');
-    let mut svg_array = make_svg_array(gamestate);
+    let mut image_path = make_svg_array(gamestate);
     loop {
-        match svg_array.pop_front() {
+        match image_path.pop_front() {
             Option::Some(el) => { uri.append(el); },
             Option::None => { break; }
         }
     };
     /// External url
     uri.append('","external_url":');
-    uri.append('"https://gol2.io",');
+    uri.append('"https://gol2.io",'); // todo: specific url for token ? 
     /// Attributes
     uri.append('"attributes":');
     let mut attributes = make_attributes(gamestate, generation);
@@ -138,7 +138,6 @@ fn make_attributes(gamestate: felt252, generation: felt252) -> Array<felt252> {
     }
 
     attributes.append('"},');
-    /// Pattern (todo: drop?)
     /// Cell count
     let mut cell_array = unpack_game(gamestate);
     let mut alive: usize = 0;
@@ -154,7 +153,6 @@ fn make_attributes(gamestate: felt252, generation: felt252) -> Array<felt252> {
     attributes.append('"value":"');
     attributes.append(alive.to_ascii());
     attributes.append('"},');
-    /// Pattern complexity (todo: drop?)
     /// Game mode 
     attributes.append('{"trait_type":"Game%20Mode",');
     attributes.append('"value":"Infinite"}]');

@@ -9,9 +9,10 @@ trait IGoL2<TContractState> {
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
-    /// .
-    fn initializer(ref self: TContractState);
+    /// For Cairo0 -> Cairo1 migration
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
+    /// For future contract upgrades
+    fn initializer(ref self: TContractState);
 }
 
 
