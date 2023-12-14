@@ -8,6 +8,7 @@ trait IGoL2<TContractState> {
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
+    fn evolve_with_storage(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     /// For Cairo0 -> Cairo1 migration
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
@@ -67,6 +68,8 @@ mod GoL2 {
     struct Storage {
         /// Mapping for game_id -> generation -> state
         stored_game: LegacyMap<(felt252, felt252), felt252>,
+        /// Mapping for generations -> Snapshots
+        snapshots: LegacyMap<felt252, Snapshot>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
         /// Has contract been migrated to cairo1
@@ -122,6 +125,13 @@ mod GoL2 {
         cell_index: usize,
         state: felt252,
     }
+
+    #[derive(Drop, Copy, Serde, starknet::Store)]
+    struct Snapshot {
+        user_id: ContractAddress,
+        timestamp: u64,
+    }
+
 
     /// External Functions
     #[external(v0)]
@@ -191,6 +201,17 @@ mod GoL2 {
             self.reward_user(caller);
         }
 
+        // todo: test cost of these 2 slots
+        // Jorik said there is a 'bug' on mainnet where syscalls are not reporting their gas
+        fn evolve_with_storage(ref self: ContractState, game_id: felt252) {
+            let caller = self.ensure_user();
+            let (generation, game) = self.evolve_game(game_id, caller);
+            self.save_game(game_id, generation, game);
+            self.save_generation_id(game_id, generation);
+            self.save_generation_snapshot(generation, caller, starknet::get_block_timestamp());
+            self.reward_user(caller);
+        }
+
         fn give_life_to_cell(ref self: ContractState, cell_index: usize) {
             let caller = self.ensure_user();
             let (generation, current_game_state) = self.get_last_state();
@@ -251,6 +272,12 @@ mod GoL2 {
 
         fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
             self.current_generation.write(game_id, generation);
+        }
+
+        fn save_generation_snapshot(
+            ref self: ContractState, generation: felt252, user: ContractAddress, timestamp: u64
+        ) {
+            self.snapshots.write(generation, Snapshot { user_id: user, timestamp: timestamp });
         }
 
         fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
