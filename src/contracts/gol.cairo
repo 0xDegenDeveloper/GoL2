@@ -5,6 +5,7 @@ trait IGoL2<TContractState> {
     /// Read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
+    fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
@@ -32,7 +33,7 @@ mod GoL2 {
         life_rules::evaluate_rounds, packing::{pack_game, unpack_game, revive_cell},
         constants::{
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
-            HIGH_ARRAY_LEN, BOARD_SQUARED, INITIAL_ADMIN
+            HIGH_ARRAY_LEN, BOARD_SQUARED
         }
     };
     use alexandria_math::pow;
@@ -68,12 +69,12 @@ mod GoL2 {
     struct Storage {
         /// Mapping for game_id -> generation -> state
         stored_game: LegacyMap<(felt252, felt252), felt252>,
-        /// Mapping for generations -> Snapshots
-        snapshots: LegacyMap<felt252, Snapshot>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
         /// Has contract been migrated to cairo1
         is_migrated: bool,
+        /// Mapping for generations -> Snapshots
+        snapshots: LegacyMap<felt252, Snapshot>,
         /// Component Storage
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
@@ -129,6 +130,7 @@ mod GoL2 {
     #[derive(Drop, Copy, Serde, starknet::Store)]
     struct Snapshot {
         user_id: ContractAddress,
+        game_state: felt252,
         timestamp: u64,
     }
 
@@ -185,6 +187,10 @@ mod GoL2 {
             self.current_generation.read(game_id)
         }
 
+        fn view_snapshot(self: @ContractState, generation: felt252) -> Snapshot {
+            self.snapshots.read(generation)
+        }
+
         /// Write 
         fn create(ref self: ContractState, game_state: felt252) {
             let caller = self.ensure_user();
@@ -208,7 +214,10 @@ mod GoL2 {
             let (generation, game) = self.evolve_game(game_id, caller);
             self.save_game(game_id, generation, game);
             self.save_generation_id(game_id, generation);
-            self.save_generation_snapshot(generation, caller, starknet::get_block_timestamp());
+            self
+                .save_generation_snapshot(
+                    generation, caller, game, starknet::get_block_timestamp()
+                );
             self.reward_user(caller);
         }
 
@@ -224,20 +233,25 @@ mod GoL2 {
     /// Internal Functions
     #[generate_trait]
     impl GoL2Internals of GoL2InternalTrait {
+        /// Burn a user's gol tokens as payment
         fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
             self.erc20._burn(user, credit_requirement.into());
         }
 
+        /// Mint a user gol tokens as reward
         fn reward_user(ref self: ContractState, user: ContractAddress) {
             self.erc20._mint(user, 1);
         }
 
+        /// Ensure a user is calling the function and return it
         fn ensure_user(self: @ContractState) -> ContractAddress {
             let caller = get_caller_address();
             assert(caller.is_non_zero(), 'User not authenticated');
             caller
         }
 
+        /// Evolve game by 1 generation
+        /// Return the new current generation and the new game state
         fn evolve_game(
             ref self: ContractState, game_id: felt252, user: ContractAddress
         ) -> (felt252, felt252) {
@@ -264,20 +278,41 @@ mod GoL2 {
             (new_generation, packed_game)
         }
 
+        /// Save the game state at a given generation
         fn save_game(
             ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
         ) {
             self.stored_game.write((game_id, generation), packed_game);
         }
 
+        /// Save the current generation of a game
         fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
             self.current_generation.write(game_id, generation);
         }
 
+        /// todo: 
+        /// - if first pre.m evolver vs first post.m evolver race), we need to check if the snapshot already exists before recording anything 
+        /// - if full race approach), no need to check anything, we are recording all 
+        /// - if full race, no checks needef for 
+        /// - if pre.m user wl_mints(), this needs to be called by NFT contract (todo: set up permissions for addrs to call this)
+        /// - if post.m user evolves(), this function needs to be called by the GoL2 contract,
+        /// todo: check understanding is correct
+        /// Save a snapshot of a generation.
+        /// A snapshot is a record of the game_state when a generation is evolved, e.g.
+        ///     - Alice evolves the game to generation 10 with state: S_a.
+        ///     - Bob revives a cell, keeping the generation at 10 but making the state: S_b.
+        ///     - Charlie evolves the game to generation 11 with state: S_c.
+        ///     Snapshot 10 is recorded with state: S_a, Alice's address, and her timestamp,
+        ///     Snapshot 11 is recorded with state: S_c, Charlie's address, and his timestamp.
+        ///     Bob does not own a snapshot because he did not 'evolve' the game to a state.
         fn save_generation_snapshot(
-            ref self: ContractState, generation: felt252, user: ContractAddress, timestamp: u64
+            ref self: ContractState,
+            generation: felt252,
+            user: ContractAddress,
+            game_state: felt252,
+            timestamp: u64
         ) {
-            self.snapshots.write(generation, Snapshot { user_id: user, timestamp: timestamp });
+            self.snapshots.write(generation, Snapshot { user_id: user, game_state, timestamp });
         }
 
         fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
