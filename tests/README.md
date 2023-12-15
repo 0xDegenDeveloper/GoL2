@@ -8,7 +8,7 @@
 
 Run
 
-`snforge test --ignored`
+`snforge test contracts::nft::uri_svg --ignored`
 
 ### Then,
 
@@ -30,7 +30,7 @@ Copy all of the printed output that looks like this:
 
 ### Next,
 
-Open [this python script](./contracts/nft/uri_svg_testing/ex.py) and at the top of the file paste in the output:
+Open [this python script](./contracts/nft/uri_svg_testing/ex.py) and edit the top of the file like so:
 
 ```
 cairo_output = """
