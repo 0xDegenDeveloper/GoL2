@@ -43,8 +43,7 @@ mod GoL2NFT {
             life_rules::evaluate_rounds, packing::{pack_game, unpack_game, revive_cell},
             uri::make_uri_array,
             constants::{
-                INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
-                INITIAL_ADMIN
+                INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT
             },
         },
         contracts::gol::{GoL2, IGoL2Dispatcher, IGoL2DispatcherTrait,}
