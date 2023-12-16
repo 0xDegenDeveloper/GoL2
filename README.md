@@ -17,7 +17,6 @@
      - [Unpacking game](#unpacking_game)
 5. [Development](#development)
    - [Requirements](#requirements)
-   - [Development summary](#dev_summary)
 
 ## Overview <a name="overview"></a>
 
@@ -430,20 +429,16 @@ It takes a felt252 with a packed game and converts it to its binary representati
 
 ### Requirements <a name="requirements"></a>
 
-- [cairo (>= 2.3.0)](https://book.cairo-lang.org/ch01-01-installation.html)
+- [scarb (>= 2.3.0)](https://book.cairo-lang.org/ch01-01-installation.html)
 - [starknet-foundry (>= 0.12.0)](https://foundry-rs.github.io/starknet-foundry/getting-started/installation.html)
 
-### Development summary <a name="dev_summary"></a>
+To build the contracts run:
 
-Contract was developed using `scarb`.
-
-To build contract run:
-
-```bash
+```
 scarb build
 ```
 
-To deploy contract run:
+To deploy a contract run:
 
 // todo: update to modern approach
 
@@ -452,22 +447,6 @@ starknet declare --contract ./build/gol.json
 protostar deploy ./build/proxy.json --network <network_name> -i <hash_of_declared_gol_contract>
 ```
 
-For basic testing run:
-
-```
-snforge test
-```
-
-For testing uri/svg generation and gas usage, see [the tests directory](./tests/) for more information.
+To run tests and see gas usage, see [the tests directory](./tests/).
 
 //todo: formalize
-
-## Changes from initial code base:
-
-- camelCase ERC20 functions -> snake_case ERC20 functions
-- simpler packing/unpacking logic for gamestate <-> felt
-
-  - dropped recursion for loops
-  - u256 instead of cairo primative cuts out manual bit arrangement
-
-- snake_case to CamelCase for event names
