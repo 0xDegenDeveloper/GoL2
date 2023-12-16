@@ -86,7 +86,7 @@ CellRevived {
 ```
 // Reads
 
-totalSupply ()
+totalSupply()
 
 balanceOf(owner: felt)
 

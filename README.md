@@ -8,13 +8,14 @@
    - [Creator](#creator)
 3. [Interface](#interface)
 4. [Architecture](#architecture)
-   - [Variables and events](#variables_and_events)
+   - [Variables, events, structs](#variables_and_events)
      - [Constant variables](#constants)
      - [Events](#events)
      - [Storage variables](#storage)
+     - [Structs](#structs)
    - [Packing](#packing)
-     - [Packing game](#packing_game)
-     - [Unpacking game](#unpacking_game)
+     - [Packing a game](#packing_game)
+     - [Unpacking a game](#unpacking_game)
 5. [Development](#development)
    - [Requirements](#requirements)
 
@@ -110,16 +111,16 @@ many generations before dying out or create a unique pattern.
 
 ## Interface <a name="interface"></a>
 
-The contract has following external functions:
+### External Functions:
 
 1. Migrate - **_can only be called once, right after contract proxy deploy, by the contract owner/admin_**
 
-It migrates the contract from Cairo 0 -> Cairo 1. See more details here [todo](./README.md)
+It migrates the contract from Cairo 0 -> Cairo 1. See more details [here](./MIGRATION.md).
 
 ```
-fn migrate(
+fn migrate (
   new_class_hash: ClassHash - Hash of new contract class implementation
-) {}
+)
 ```
 
 2. Upgrade - **_can only be called by the contract owner/admin_**
@@ -127,9 +128,9 @@ fn migrate(
 Upgrades the contract.
 
 ```
-fn upgrade(
+fn upgrade (
   new_class_hash: ClassHash - Hash of new contract class implementation
-) {}
+)
 ```
 
 3. Evolve
@@ -137,18 +138,9 @@ fn upgrade(
 Evolves the game and rewards user with 1 credit token.
 
 ```
-fn evolve(
+fn evolve (
   game_id: felt252 - Id of the game to evolve
-) {}
-```
-
-Example:
-
-//todo: update this to modern approach
-
-```
-$ # Evolve infinite game by one generation
-$ starknet --account user1 invoke --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function evolve --inputs 39132555273291485155644251043342963441664
+)
 ```
 
 4. Create - **_only creator mode_**
@@ -156,19 +148,9 @@ $ starknet --account user1 invoke --address 0x04278414023e82811607def9537ccc1372
 Creates a new game, reduces user credit balance by 10 credit tokens.
 
 ```
-fn create(
+fn create (
   game_state: felt252 - Genesis state for a new game
-) {}
-```
-
-Example:
-
-// todo: update this to modern approach
-
-```
-$ # Create a new game with single cell alive at index 15 - first column, second row
-$ # Such game is encoded in value 32768
-$ starknet --account user1 invoke --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function create --inputs 32768
+)
 ```
 
 5. Give life to cell - **_only infinite mode_**
@@ -176,74 +158,32 @@ $ starknet --account user1 invoke --address 0x04278414023e82811607def9537ccc1372
 Gives life to cell under chosen index, reduces user credit balance by 1 credit token.
 
 ```
-fn give_life_to_cell(
-  cell_index: usize - An index of the cell a user wants to revive (value between 0-224)
-) {}
+fn give_life_to_cell (
+  cell_index: usize - An index of the cell the user wants to revive (value between 0-224)
+)
 ```
 
-Example:
-
-// todo: update this to modern approach
-
-```
-$ # Give life to a single cell at index 100 - tenth column, seventh row
-$ starknet --account user1 invoke --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function give_life_to_cell --inputs 100
-```
-
-And following view functions:
+### View functions:
 
 1. View game
 
-Views the game board encoded to single felt.
+Views the game board encoded as a single `felt252`.
 
 ```
-fn view_game(
+fn view_game (
     game_id: felt252 - Id of the game to view
     generation: felt252 - Generation of the game to view
-  ) -> game_state: felt252 - A felt containing an encoded game state for given game_id and generation {}
-```
-
-Example:
-
-// todo: update this to modern approach
-
-```
-$ # Show inifinite game at first generation. The game state is the same as game_id.
-$ starknet --account user1 call --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function view_game --inputs 39132555273291485155644251043342963441664 1
-
-> 0x7300100008000000000000000000000000
-
-$ # 0x7300100008000000000000000000000000 converted from hex to decimal representation is 39132555273291485155644251043342963441664
-
-$ # Now show infinite game at second generation - after user evolved
-$ starknet --account user1 call --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function view_game --inputs 39132555273291485155644251043342963441664 2
-
-> 0x100030006e0000000000000000000000000000
+) -> game_state: felt252 - A felt containing an encoded game state for given game_id and generation
 ```
 
 2. Get current generation
 
 Gets the current generation of a given game.
 
-// todo: update this to modern approach
-
 ```
-func get_current_generation(
-        game_id (felt) - Id of game to retrieve last generation
-    ) -> (
-        generation (felt) - Id of current generation of given game
-    ):
-```
-
-Example:
-
-// todo: update this to modern approach
-
-```
-$ # get current generation of infinite game
-$ starknet --account user1 call --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function get_current_generation --inputs 39132555273291485155644251043342963441664
-
-> 2
+fn get_current_generation (
+    game_id: felt252 - Id of game to retrieve last generation
+) -> generation: felt252 - Generation of the given game
 ```
 
 3. Get snapshot details
@@ -251,25 +191,12 @@ $ starknet --account user1 call --address 0x04278414023e82811607def9537ccc13729a
 Gets the snapshot of a specific generation in the infinite game. **_Note: A snapshot is a capture of an evolution, if a cell is revived for a generation, this is not recorded in the snapshot, only its original state/creator/timestamp._**
 
 ```
-func view_snapshot(
-        generation: felt252 - The generation {}
-    ) -> Snapshot{
-        user_id: ContractAddress - Address of user to evolve this generation
-        game_state: felt252 - State the game was evolved into
-        timestamp: u64 - Unix block timestamp when this snapshot was taken
-    }
+fn view_snapshot (
+      generation: felt252 - The generation {}
+) -> snapshot: Snapshot
 ```
 
-Example:
-
-// todo: update this to modern approach
-
-```
-$ # get current generation of infinite game
-$ starknet --account user1 call --address 0x04278414023e82811607def9537ccc13729a72936e6648e0134622175992dbf4 --abi build/gol_abi.json --function get_current_generation --inputs 39132555273291485155644251043342963441664
-
-> 2
-```
+**_A Snapshot is a new struct we have added, it is defined below._**
 
 ## Architecture <a name="architecture"></a>
 
@@ -290,7 +217,7 @@ Summary:
 - Genesis state of the game is its game_id
 - No two games can have identical genesis states
 
-### Variables and events <a name="variables_and_events"></a>
+### Variables, events, structs <a name="variables_and_events"></a>
 
 #### Constant variables used in the contract (defined in `utils/constants.cairo`). <a name="constants"></a>
 
@@ -373,7 +300,7 @@ Summary:
 
     - is_migrated: bool -> If the migration txn has occurred
 
-- `snapshots` - Holds evolution information on chain
+- `snapshots` - Holds a record of generation Snapshots
 
   - parameters:
 
@@ -383,13 +310,25 @@ Summary:
 
     - snapshot: Snapshot - A snapshot object of the current generation
 
+#### Structs <a name="structs"></a>
+
+- Snapshot - Used to store details about each evolution in the infinite game
+
+```
+Snapshot {
+  user_id: ContractAddress - Address of user to evolve this generation
+  game_state: felt252 - State the game was evolved into
+  timestamp: u64 - Unix block timestamp when this snapshot was taken
+}
+```
+
 ### Packing <a name="packing"></a>
 
-#### Packing game <a name="packing_game"></a>
+#### Packing a game <a name="packing_game"></a>
 
-To pack the game into one felt we use `src/utils/helpers.cairo::pack_game` function.
+To pack the game into one `felt252` we use the `src/utils/helpers.cairo::pack_game` function.
 
-It takes an array of cells (in binary representation), and verifies it has the proper length of a game.
+It takes an array of cells (representing binary), and verifies it has the proper length for a game.
 
 #### Array:
 
@@ -413,17 +352,17 @@ It takes an array of cells (in binary representation), and verifies it has the p
 
 #### Binary Representation:
 
-`0b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000001000000000001100111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`
+`0b:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000001000000000001100111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`
 
 Next, the array is passed to the `srs/utils/helpers.cairo::pack_cells` function, where the binary representation is converted into its decimal representation.
 
-This returns the value `39132555273291485155644251043342963441664`, which is our game board packed into a single felt.
+This returns the value `39132555273291485155644251043342963441664`, which is our game board packed into a single `felt252`.
 
-#### Unpacking game <a name="unpacking_game"></a>
+#### Unpacking a game <a name="unpacking_game"></a>
 
-To unpack the game from single felt to an array with cell states we use `src/utils/helpers.cairo::unpack_game` function.
+To unpack the game from a single `felt252` to an array of cell states, we use the `src/utils/helpers.cairo::unpack_game` function.
 
-It takes a felt252 with a packed game and converts it to its binary representation, and written into a single array of cells.
+It takes the `felt252` packed game, converts it to its binary representation, then writes it into an array of cells.
 
 ## Development <a name="development"></a>
 
@@ -438,15 +377,4 @@ To build the contracts run:
 scarb build
 ```
 
-To deploy a contract run:
-
-// todo: update to modern approach
-
-```bash
-starknet declare --contract ./build/gol.json
-protostar deploy ./build/proxy.json --network <network_name> -i <hash_of_declared_gol_contract>
-```
-
-To run tests and see gas usage, see [the tests directory](./tests/).
-
-//todo: formalize
+For testing and see gas usage, see [here](./tests/).
