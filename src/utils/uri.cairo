@@ -106,6 +106,7 @@ fn make_uri_array(token_id: u256, gamestate: felt252, generation: felt252) -> Ar
     /// External url
     uri.append('","external_url":');
     uri.append('"https://gol2.io",'); // todo: specific url for token ? 
+    // todo: add timestamp to uri
     /// Attributes
     uri.append('"attributes":');
     let mut attributes = make_attributes(gamestate, generation);
