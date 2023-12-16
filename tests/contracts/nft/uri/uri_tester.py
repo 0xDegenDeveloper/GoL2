@@ -1,6 +1,6 @@
 import subprocess
 
-print("Running: snforge `test contracts::nft::uri_svg --ignored`\n")
+print("\nRunning: `snforge test contracts::nft::uri_svg --ignored`\n")
 
 # Execute snforge test command
 command = "snforge test contracts::nft::uri_svg --ignored"
