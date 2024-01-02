@@ -1,4 +1,4 @@
-use gol2::utils::constants::{DIM, LOW_ARRAY_LEN, HIGH_ARRAY_LEN, BOARD_SQUARED};
+use gol2::utils::constants::{LOW_ARRAY_LEN, HIGH_ARRAY_LEN, BOARD_SQUARED};
 use alexandria_math::pow;
 
 /// The game board is a 15x15 grid of cells:
@@ -14,7 +14,7 @@ use alexandria_math::pow;
 /// This bit array represents a 225 bit integer, which is stored in the contract as a felt252
 /// Cell array: [1, 1, 1, 0, 0,..., 0, 0] translates to binary: 0b00...000111, which is felt: 7
 
-/// Translates a bit array into a felt252
+/// Translate a bit array into a felt252.
 fn pack_cells(cells: Array<felt252>) -> felt252 {
     let mut mask = 0x1;
     let mut result = 0;
@@ -31,10 +31,10 @@ fn pack_cells(cells: Array<felt252>) -> felt252 {
 }
 
 
-/// Creates a cell array from a game state
+/// Create a cell (bit) array from a game state felt.
 fn unpack_game(game: felt252) -> Array<felt252> {
     let game_int: u256 = game.into();
-    assert(game_int.high < pow(2, HIGH_ARRAY_LEN.into()), 'Invalid game state (too large)');
+    assert(game_int.high < pow(2, HIGH_ARRAY_LEN.into()), 'GoL2: Game too big to unpack');
     let mut cell_array = array![];
     let mut mask: u256 = 0x1;
     let mut i: usize = 0;
@@ -53,13 +53,13 @@ fn unpack_game(game: felt252) -> Array<felt252> {
     cell_array
 }
 
-/// Creates a game state from a cell array
+/// Create a game state from a cell (bit) array
 fn pack_game(cells: Array<felt252>) -> felt252 {
-    assert(cells.len() == BOARD_SQUARED, 'Invalid cell array length');
+    assert(cells.len() == BOARD_SQUARED, 'GoL2: Invalid cell array length');
     pack_cells(cells)
 }
 
-/// Toggles a cell index alive, returns the new game state
+/// Toggle a cell index alive and return the new game state.
 fn revive_cell(cell_index: usize, current_state: felt252) -> felt252 {
     let current_state_int: u256 = current_state.into();
     let activated_bit: u256 = if cell_index < LOW_ARRAY_LEN.into() {

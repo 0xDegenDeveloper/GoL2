@@ -158,7 +158,7 @@ fn test_maximum_unpacked_game() {
 }
 
 #[test]
-#[should_panic(expected: ('Invalid cell array length',))]
+#[should_panic(expected: ('GoL2: Invalid cell array length',))]
 fn test_overloaded_packed_game() {
     let mut game: Array<felt252> = array![];
     let mut i: usize = 0;
@@ -177,7 +177,7 @@ fn test_overloaded_packed_game() {
 
 
 #[test]
-#[should_panic(expected: ('Invalid cell array length',))]
+#[should_panic(expected: ('GoL2: Invalid cell array length',))]
 fn test_underloaded_packed_game() {
     let mut game: Array<felt252> = array![];
     let mut i: usize = 0;
@@ -195,7 +195,7 @@ fn test_underloaded_packed_game() {
 }
 
 #[test]
-#[should_panic(expected: ('Invalid game state (too large)',))]
+#[should_panic(expected: ('GoL2: Game too big to unpack',))]
 fn test_overloaded_unpacked_game() {
     let game_id: felt252 = 53919893334301279589334030174039261347274288845081144962207220498431 + 1;
     let mut unpacked_game: Array<felt252> = unpack_game(game_id);
