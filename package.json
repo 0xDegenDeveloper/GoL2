@@ -1,0 +1,32 @@
+{
+  "name": "gol2",
+  "version": "1.0.0",
+  "description": "## Table of contents",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xDegenDeveloper/gol2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/0xDegenDeveloper/gol2/issues"
+  },
+  "homepage": "https://github.com/0xDegenDeveloper/gol2#readme",
+  "dependencies": {
+    "@applied-crypto/merkletree": "^0.1.2",
+    "@scure/starknet": "^1.0.0",
+    "circomlibjs": "^0.1.7",
+    "merkletreejs": "^0.3.11",
+    "scure": "^1.6.0",
+    "starknet": "^5.24.3",
+    "voyager-verify": "^0.0.12"
+  }
+}
