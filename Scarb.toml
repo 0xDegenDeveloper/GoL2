@@ -1,6 +1,7 @@
 [package]
 name = "gol2"
 version = "0.1.0"
+# cairo-version = "2.3.0"
 
 # See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest.html
 
@@ -10,10 +11,16 @@ snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry.git", tag 
 openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.8.0"}
 alexandria_ascii = { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.2.0"}
 alexandria_math = { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.2.0"}
+alexandria_merkle_tree= { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.3.0-rc0"}
 alexandria_encoding = { git = "https://github.com/keep-starknet-strange/alexandria", tag = "cairo-v2.2.0"}
+
 [[target.starknet-contract]]
 sierra = true
 casm = true
+
+# [lib]
+# sierra = true
+# casm = true
 
 [[tool.snforge.fork]]
 name = "GOERLI"
@@ -24,5 +31,21 @@ block_id.number = "911663"
 name = "MAINNET"
 url = "https://starknet-mainnet.infura.io/v3/196e369467a44d4aba5d458d308f4c1c"
 block_id.number = "457106"
+
+[tool.dojo.env]
+rpc_url = "http://localhost:5050/"
+account_address = "0x517ececd29116499f4a1b64b094da79ba08dfd54a3edaa316134c41f8160973"
+private_key = "0x1800000000300000180000000000030000000000003006001800006600"
+
+[tool.sncast]
+account = "katana1"
+accounts-file = "/Users/mattcarter/.starknet_accounts/starknet_open_zeppelin_accounts.json"
+url = "http://localhost:5050/rpc"
+
+[tool.sncast.goerli]
+account = "v0.11.0.2"
+accounts-file = "/Users/mattcarter/.starknet_accounts/starknet_open_zeppelin_accounts.json"
+url = "https://starknet-goerli.infura.io/v3/196e369467a44d4aba5d458d308f4c1c"
+
 
 
