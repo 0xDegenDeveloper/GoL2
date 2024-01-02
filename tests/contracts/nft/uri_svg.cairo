@@ -44,6 +44,8 @@ fn deploy_contract() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
                 gol_address.into(),
                 1, //u256.low
                 0, //u256.high
+                0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7, // poseidon
+                0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7 // pedersen
             ]
         )
         .unwrap();
@@ -55,16 +57,12 @@ fn deploy_contract() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
 
 
 /// Constructor
+// todo: mint with storage to set timestamp and check copies
 #[test]
 #[ignore]
 fn test_uri_svg() {
     let (gol, nft) = deploy_contract();
     let nft_meta = IERC721MetadataDispatcher { contract_address: nft.contract_address };
     let mut token_uri = nft_meta.token_uri(1); // INFINITE_GAME_GENESIS at generation 1 => acorn
-    loop {
-        match token_uri.pop_front() {
-            Option::Some(el) => { el.print(); },
-            Option::None => { break; }
-        }
-    };
+    token_uri.print();
 }
