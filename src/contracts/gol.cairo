@@ -5,12 +5,15 @@ trait IGoL2<TContractState> {
     /// Read
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
+    fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
+    fn pre_migration_generations(self: @TContractState) -> felt252;
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
-    fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
-    /// .
+    fn evolve_with_storage(ref self: TContractState, game_id: felt252);
+    fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
+    fn initializer(ref self: TContractState);
 }
 
 
@@ -26,14 +29,15 @@ mod GoL2 {
         token::erc20::{ERC20Component, interface::IERC20Metadata}
     };
     use gol2::utils::{
-        life_rules::evaluate_rounds, math::raise_to_power,
-        packing::{pack_game, unpack_game, revive_cell},
+        life_rules::evaluate_rounds, packing::{pack_game, unpack_game, revive_cell},
         constants::{
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
-            INITIAL_ADMIN
+            HIGH_ARRAY_LEN, BOARD_SQUARED
         }
     };
+    use alexandria_math::pow;
     use debug::PrintTrait;
+    use super::{IGoL2Dispatcher, IGoL2DispatcherTrait};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -56,8 +60,9 @@ mod GoL2 {
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
-        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
+        self.erc20.initializer('Game of Life Token', 'GOL');
         self.ownable.initializer(owner);
+        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
     }
 
     #[storage]
@@ -66,8 +71,12 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
+        /// Number of generations in the infinite game at before migration to Cario 1
+        pre_migration_generations: felt252,
         /// Has contract been migrated to cairo1
         is_migrated: bool,
+        /// Mapping for generations -> Snapshots
+        snapshots: LegacyMap<felt252, Snapshot>,
         /// Component Storage
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
@@ -75,6 +84,8 @@ mod GoL2 {
         upgradeable: UpgradeableComponent::Storage,
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
+        /// Slot of old proxy admin address, used for migration to ownable/upgradable components
+        Proxy_admin: felt252,
     }
 
     #[event]
@@ -114,9 +125,17 @@ mod GoL2 {
         #[key]
         user_id: ContractAddress,
         generation: felt252,
-        cell_index: felt252,
+        cell_index: usize,
         state: felt252,
     }
+
+    #[derive(Drop, Copy, Serde, starknet::Store)]
+    struct Snapshot {
+        user_id: ContractAddress,
+        game_state: felt252,
+        timestamp: u64,
+    }
+
 
     /// External Functions
     #[external(v0)]
@@ -125,6 +144,7 @@ mod GoL2 {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
+            IGoL2Dispatcher { contract_address: starknet::get_contract_address() }.initializer();
         }
     }
 
@@ -145,12 +165,19 @@ mod GoL2 {
 
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
+        /// Empty function, used for interface definition if future upgrades to the contract
+        fn initializer(ref self: ContractState) {}
+
         fn migrate(ref self: ContractState, new_class_hash: ClassHash) {
-            let admin = contract_address_try_from_felt252(INITIAL_ADMIN).unwrap();
-            assert(get_caller_address() == admin, 'Caller is not admin');
+            let prev_admin = contract_address_try_from_felt252(self.Proxy_admin.read()).unwrap();
+            assert(get_caller_address() == prev_admin, 'Caller is not prev admin');
             assert(!self.is_migrated.read(), 'Contract already migrated');
             /// The contract admin is currently stored in slot `Proxy_admin`, this places it in slot `Ownable_owner`
-            self.ownable.initializer(admin);
+            self.ownable.initializer(prev_admin);
+            /// Save current infinite genesis game state 
+            self
+                .pre_migration_generations
+                .write(self.current_generation.read(INFINITE_GAME_GENESIS));
             /// Toggles function uncallable again
             self.is_migrated.write(true);
             /// Removes proxy setup, switching to single upgradable contract setup
@@ -164,6 +191,17 @@ mod GoL2 {
 
         fn get_current_generation(self: @ContractState, game_id: felt252) -> felt252 {
             self.current_generation.read(game_id)
+        }
+
+        /// Returns the number of generations in the infinite game at the time of migration.
+        /// @dev Marker for when generation snapshots start being saved in contract. 
+        fn pre_migration_generations(self: @ContractState) -> felt252 {
+            self.pre_migration_generations.read()
+        }
+
+        /// Gets the snapshot of a generation in the infinite game
+        fn view_snapshot(self: @ContractState, generation: felt252) -> Snapshot {
+            self.snapshots.read(generation)
         }
 
         /// Write 
@@ -182,7 +220,21 @@ mod GoL2 {
             self.reward_user(caller);
         }
 
-        fn give_life_to_cell(ref self: ContractState, cell_index: felt252) {
+        // todo: test cost of these 2 slots
+        // Jorik said there is a 'bug' on mainnet where syscalls are not reporting their gas
+        fn evolve_with_storage(ref self: ContractState, game_id: felt252) {
+            let caller = self.ensure_user();
+            let (generation, game) = self.evolve_game(game_id, caller);
+            self.save_game(game_id, generation, game);
+            self.save_generation_id(game_id, generation);
+            self
+                .save_generation_snapshot(
+                    generation, caller, game, starknet::get_block_timestamp()
+                );
+            self.reward_user(caller);
+        }
+
+        fn give_life_to_cell(ref self: ContractState, cell_index: usize) {
             let caller = self.ensure_user();
             let (generation, current_game_state) = self.get_last_state();
             self.assert_valid_cell_index(cell_index);
@@ -193,26 +245,30 @@ mod GoL2 {
 
     /// Internal Functions
     #[generate_trait]
-    impl HelperImpl of HelperTrait {
+    impl GoL2Internals of GoL2InternalTrait {
+        /// Burn a user's gol tokens as payment
         fn pay(ref self: ContractState, user: ContractAddress, credit_requirement: felt252) {
             self.erc20._burn(user, credit_requirement.into());
         }
 
+        /// Mint a user gol tokens as reward
         fn reward_user(ref self: ContractState, user: ContractAddress) {
             self.erc20._mint(user, 1);
         }
 
+        /// Ensure a user is calling the function and return it
         fn ensure_user(self: @ContractState) -> ContractAddress {
             let caller = get_caller_address();
             assert(caller.is_non_zero(), 'User not authenticated');
             caller
         }
 
+        /// Evolve game by 1 generation
+        /// Return the new current generation and the new game state
         fn evolve_game(
             ref self: ContractState, game_id: felt252, user: ContractAddress
         ) -> (felt252, felt252) {
             let prev_generation = self.current_generation.read(game_id);
-
             self.assert_game_exists(game_id, prev_generation);
 
             let new_generation = prev_generation + 1;
@@ -235,14 +291,41 @@ mod GoL2 {
             (new_generation, packed_game)
         }
 
+        /// Save the game state at a given generation
         fn save_game(
             ref self: ContractState, game_id: felt252, generation: felt252, packed_game: felt252
         ) {
             self.stored_game.write((game_id, generation), packed_game);
         }
 
+        /// Save the current generation of a game
         fn save_generation_id(ref self: ContractState, game_id: felt252, generation: felt252) {
             self.current_generation.write(game_id, generation);
+        }
+
+        /// todo: 
+        /// - if first pre.m evolver vs first post.m evolver race), we need to check if the snapshot already exists before recording anything 
+        /// - if full race approach), no need to check anything, we are recording all 
+        /// - if full race, no checks needef for 
+        /// - if pre.m user wl_mints(), this needs to be called by NFT contract (todo: set up permissions for addrs to call this)
+        /// - if post.m user evolves(), this function needs to be called by the GoL2 contract,
+        /// todo: check understanding is correct
+        /// Save a snapshot of a generation.
+        /// A snapshot is a record of the game_state when a generation is evolved, e.g.
+        ///     - Alice evolves the game to generation 10 with state: S_a.
+        ///     - Bob revives a cell, keeping the generation at 10 but making the state: S_b.
+        ///     - Charlie evolves the game to generation 11 with state: S_c.
+        ///     Snapshot 10 is recorded with state: S_a, Alice's address, and her timestamp,
+        ///     Snapshot 11 is recorded with state: S_c, Charlie's address, and his timestamp.
+        ///     Bob does not own a snapshot because he did not 'evolve' the game to a state.
+        fn save_generation_snapshot(
+            ref self: ContractState,
+            generation: felt252,
+            user: ContractAddress,
+            game_state: felt252,
+            timestamp: u64
+        ) {
+            self.snapshots.write(generation, Snapshot { user_id: user, game_state, timestamp });
         }
 
         fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
@@ -271,7 +354,8 @@ mod GoL2 {
         fn assert_valid_new_game(self: @ContractState, game: felt252) {
             self.assert_game_does_not_exist(game);
             /// max game => 225 bits all 1s => 2^225 - 1
-            assert(game.into() < (raise_to_power(2, (DIM * DIM).into())), 'Game size too big');
+            let game_int: u256 = game.into();
+            assert(game_int.high < (pow(2, HIGH_ARRAY_LEN.into())), 'Game size too big');
         }
 
         fn create_new_game(ref self: ContractState, game_state: felt252, user_id: ContractAddress) {
@@ -287,15 +371,15 @@ mod GoL2 {
             (generation, game_state)
         }
 
-        fn assert_valid_cell_index(self: @ContractState, cell_index: felt252) {
-            assert(cell_index.try_into().unwrap() < DIM * DIM, 'Cell index out of range');
+        fn assert_valid_cell_index(self: @ContractState, cell_index: usize) {
+            assert(cell_index < BOARD_SQUARED, 'Cell index out of range');
         }
 
         fn activate_cell(
             ref self: ContractState,
             generation: felt252,
             caller: ContractAddress,
-            cell_index: felt252,
+            cell_index: usize,
             current_state: felt252
         ) {
             self.assert_valid_cell_index(cell_index);

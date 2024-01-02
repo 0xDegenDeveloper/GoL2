@@ -5,14 +5,11 @@ use snforge_std::{
 };
 use gol2::{
     contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
-    utils::{
-        math::raise_to_power,
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
-            GIVE_LIFE_CREDIT_REQUIREMENT
-        },
-    }
+    utils::constants::{
+        INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
+        FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
+        GIVE_LIFE_CREDIT_REQUIREMENT
+    },
 };
 use openzeppelin::{
     access::ownable::{OwnableComponent, interface::{IOwnableDispatcher, IOwnableDispatcherTrait}},
@@ -42,6 +39,7 @@ trait IOldGol<TContractState> {
     fn allowance(self: @TContractState, owner: felt252, spender: felt252) -> u256;
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
+    fn pre_migration_generations(self: @TContractState) -> felt252;
     /// Write
     fn migrate(self: @TContractState, new_class_hash: ClassHash);
     fn transfer(self: @TContractState, to: felt252, value: u256);
@@ -125,34 +123,8 @@ fn test_migrate_again() {
 
 #[test]
 #[fork("MAINNET")]
-#[should_panic(expected: ('Caller is not admin',))]
+#[should_panic(expected: ('Caller is not prev admin',))]
 fn test_migrate_not_admin() {
-    let user = contract_address_const::<'user'>();
-    let old_gol_address = contract_address_const::<
-        0x06a05844a03bb9e744479e3298f54705a35966ab04140d3d8dd797c1f6dc49d0
-    >();
-    let admin = contract_address_const::<
-        0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973
-    >();
-    let not_admin = contract_address_const::<'not admin'>();
-
-    let OldGol = IOldGolDispatcher { contract_address: old_gol_address };
-
-    /// Upgrade the proxy contract's impl hash
-    let new_gol_hash = declare('GoL2').class_hash;
-    start_prank(CheatTarget::All(()), admin);
-    OldGol.upgrade(new_gol_hash.into());
-    stop_prank(CheatTarget::All(()));
-    /// Migrate contract using syscall
-    start_prank(CheatTarget::All(()), not_admin);
-    OldGol.migrate(new_gol_hash);
-    stop_prank(CheatTarget::All(()));
-}
-
-#[test]
-#[fork("MAINNET")]
-#[should_panic(expected: ('Caller is not admin',))]
-fn test_upgrade_not_admin() {
     let user = contract_address_const::<'user'>();
     let old_gol_address = contract_address_const::<
         0x06a05844a03bb9e744479e3298f54705a35966ab04140d3d8dd797c1f6dc49d0
@@ -238,6 +210,7 @@ fn test_post_migration_state() {
     /// Game
     let new_generation = NewGol.get_current_generation(INFINITE_GAME_GENESIS);
     let new_view_game = NewGol.view_game(INFINITE_GAME_GENESIS, new_generation);
+    let new_pre_migration_generations = NewGol.pre_migration_generations();
     /// ERC20
     let new_name = NewERC20.name();
     let new_symbol = NewERC20.symbol();
@@ -258,6 +231,8 @@ fn test_post_migration_state() {
     assert(old_generation == new_generation, 'generation should be the same');
     assert(old_view_game == new_view_game, 'view game should be the same');
     assert(old_allowance == new_allowance, 'allowance should be the same');
+    assert(new_pre_migration_generations == new_generation, 'migration gens saved wrong');
+    assert(new_pre_migration_generations != 0, 'migration gens saved wrong');
 }
 
 #[test]

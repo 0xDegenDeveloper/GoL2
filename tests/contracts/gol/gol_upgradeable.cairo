@@ -8,14 +8,11 @@ use gol2::{
         gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
         test_contract::{ITestTraitDispatcher, ITestTraitDispatcherTrait}
     },
-    utils::{
-        math::raise_to_power,
-        constants::{
-            INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-            FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
-            GIVE_LIFE_CREDIT_REQUIREMENT
-        },
-    }
+    utils::constants::{
+        INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
+        FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
+        GIVE_LIFE_CREDIT_REQUIREMENT
+    },
 };
 use openzeppelin::{
     access::ownable::{OwnableComponent, interface::{IOwnableDispatcher, IOwnableDispatcherTrait}},
@@ -45,12 +42,11 @@ fn test_upgrade_as_owner() {
 
     IUpgradeableDispatcher { contract_address: gol.contract_address }.upgrade(test_hash);
     let new_gol = ITestTraitDispatcher { contract_address: gol.contract_address };
-
     let upgraded_hash = get_class_hash(gol.contract_address);
 
     assert(hash_init != upgraded_hash, 'Hash not changed');
     assert(upgraded_hash == test_hash, 'Hash upgrade incorrect');
-    assert(new_gol.x() == 0, 'New is missing ()s');
+    assert(new_gol.x() == 123, 'Initializer failed');
     stop_prank(CheatTarget::All(()));
 }
 

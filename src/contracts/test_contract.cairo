@@ -4,11 +4,14 @@ use starknet::ContractAddress;
 trait ITestTrait<TContractState> {
     fn total_supply(self: @TContractState) -> u256;
     fn x(self: @TContractState) -> felt252;
+    fn initializer(ref self: TContractState);
 }
 
 #[starknet::contract]
 mod TestContract {
-    use starknet::{get_caller_address, ContractAddress, ClassHash};
+    use debug::PrintTrait;
+
+    use starknet::{get_caller_address, get_contract_address, ContractAddress, ClassHash};
     #[constructor]
     fn constructor(ref self: ContractState) {}
     #[storage]
@@ -26,6 +29,10 @@ mod TestContract {
         }
         fn x(self: @ContractState) -> felt252 {
             self.x.read()
+        }
+        fn initializer(ref self: ContractState) {
+            // assert(get_caller_address() == get_contract_address(), 'Caller not self');
+            self.x.write(123);
         }
     }
 }
