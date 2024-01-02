@@ -3,7 +3,7 @@ use gol2::utils::constants::{
     LAST_ROW_INDEX
 };
 
-/// Evaluates an amount of games and returns the final state.
+/// Evaluate an amount of games and return the final state.
 fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt252> {
     loop {
         if rounds == 0 {
@@ -15,7 +15,7 @@ fn evaluate_rounds(mut rounds: usize, mut cells: Array<felt252>) -> Array<felt25
     cells
 }
 
-/// Apply the Game of Life rules (wrapping on edges).
+/// Apply the Game of Life rules (wrapping on edges) to an array of cell states.
 fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     let mut evolution = array![];
     let mut i = 0;
@@ -26,7 +26,7 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
         }
         let (L, R, U, D, LU, RU, LD, RD) = get_adjacent(i);
 
-        /// How many neighbours are alive?
+        /// How many neighbours are alive ?
         let score = *cell_states[L]
             + *cell_states[R]
             + *cell_states[D]
@@ -63,17 +63,17 @@ fn apply_rules(cell_states: Array<felt252>) -> Array<felt252> {
     evolution
 }
 
-/// Gets the 8 neighbours of a cell (wrapping on edges).
+/// Get the 8 neighbors of a cell (wrapping on edges).
 fn get_adjacent(cell_idx: usize) -> (usize, usize, usize, usize, usize, usize, usize, usize) {
     ///  Cell Array: 
-    ///        Row 0               Row 1                Row 2
-    ///  <-------DIM-------> <-------DIM-------> <-------DIM------->
+    ///         Row 0               Row 1                Row 2   
+    ///  <-------DIM-------> <-------DIM-------> <-------DIM-------> 
     /// [0,0,0,0,1,...,1,0,1,0,1,1,0,...,1,0,0,1,1,1,0,1...,0,0,1,0...]
     ///  ^col_0      col_14^ ^col_0      col_14^ ^col_0    
     let (row, col) = (cell_idx / (DIM), cell_idx % (DIM));
 
     /// LU U RU
-    /// L  .  R
+    /// L  x  R
     /// LD D RD
     let (mut L, mut R, mut U, mut D, mut LU, mut RU, mut LD, mut RD) = (
         225, 225, 225, 225, 225, 225, 225, 225
