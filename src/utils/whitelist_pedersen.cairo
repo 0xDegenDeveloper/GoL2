@@ -8,3 +8,8 @@ fn verify_pedersen_merkle(root: felt252, leaf: felt252, proof: Array<felt252>) {
     assert(merkle_tree.verify(root, leaf, proof.span()), 'NFT: invalid proof');
 }
 
+fn is_valid_pedersen_merkle(root: felt252, leaf: felt252, proof: Array<felt252>) -> bool {
+    let mut merkle_tree: MerkleTree<Hasher> = MerkleTreeTrait::new();
+    merkle_tree.verify(root, leaf, proof.span())
+}
+

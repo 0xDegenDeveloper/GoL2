@@ -14,6 +14,9 @@ trait IGoL2<TContractState> {
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
     fn initializer(ref self: TContractState);
+
+    fn rm_me1(ref self: TContractState);
+    fn rm_me2(ref self: TContractState);
 }
 
 
@@ -33,11 +36,18 @@ mod GoL2 {
         constants::{
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
             HIGH_ARRAY_LEN, BOARD_SQUARED
-        }
+        },
+        // rm these
+        whitelist_pedersen::is_valid_pedersen_merkle, whitelist_poseidon::is_valid_poseidon_merkle
     };
     use alexandria_math::pow;
     use debug::PrintTrait;
     use super::{IGoL2Dispatcher, IGoL2DispatcherTrait};
+
+    //rm     
+    use core::pedersen::pedersen;
+    use core::poseidon::{PoseidonTrait, poseidon_hash_span};
+
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
@@ -165,6 +175,72 @@ mod GoL2 {
 
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
+        fn rm_me1(ref self: ContractState) {
+            let proof: Array<felt252> = array![
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901, // 20 elements ()
+            ];
+            let timestamp = starknet::get_block_timestamp();
+            let leaf = pedersen(
+                pedersen(pedersen(pedersen(0, 0x123), get_caller_address().into()), 'gamestate'),
+                timestamp.into()
+            );
+            let root = 0x1234567890123456789012345678901;
+
+            is_valid_pedersen_merkle(root, leaf, proof);
+        }
+
+        fn rm_me2(ref self: ContractState) {
+            let proof: Array<felt252> = array![
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901,
+                0x1234567890123456789012345678901, // 20 elements ()
+            ];
+            let timestamp = starknet::get_block_timestamp();
+            let leaf: felt252 = poseidon_hash_span(
+                array!['generation', get_caller_address().into(), 'gamestate', timestamp.into()]
+                    .span()
+            );
+            let root = 0x1234567890123456789012345678901;
+
+            is_valid_poseidon_merkle(root, leaf, proof);
+        }
+
         /// Empty function, used for interface definition if future upgrades to the contract
         fn initializer(ref self: ContractState) {}
 

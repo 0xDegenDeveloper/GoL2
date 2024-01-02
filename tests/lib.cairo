@@ -15,6 +15,7 @@ mod contracts {
     mod nft {
         mod _nft;
         mod uri_svg;
+        mod gas;
     }
 }
 
