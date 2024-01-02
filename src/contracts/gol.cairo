@@ -6,14 +6,13 @@ trait IGoL2<TContractState> {
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
     fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
+    fn pre_migration_generations(self: @TContractState) -> felt252;
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn evolve_with_storage(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
-    /// For Cairo0 -> Cairo1 migration
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
-    /// For future contract upgrades
     fn initializer(ref self: TContractState);
 }
 
@@ -61,8 +60,9 @@ mod GoL2 {
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
-        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
+        self.erc20.initializer('Game of Life Token', 'GOL');
         self.ownable.initializer(owner);
+        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
     }
 
     #[storage]
@@ -71,6 +71,8 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
+        /// Number of generations in the infinite game at before migration to Cario 1
+        pre_migration_generations: felt252,
         /// Has contract been migrated to cairo1
         is_migrated: bool,
         /// Mapping for generations -> Snapshots
@@ -172,6 +174,10 @@ mod GoL2 {
             assert(!self.is_migrated.read(), 'Contract already migrated');
             /// The contract admin is currently stored in slot `Proxy_admin`, this places it in slot `Ownable_owner`
             self.ownable.initializer(prev_admin);
+            /// Save current infinite genesis game state 
+            self
+                .pre_migration_generations
+                .write(self.current_generation.read(INFINITE_GAME_GENESIS));
             /// Toggles function uncallable again
             self.is_migrated.write(true);
             /// Removes proxy setup, switching to single upgradable contract setup
@@ -187,6 +193,13 @@ mod GoL2 {
             self.current_generation.read(game_id)
         }
 
+        /// Returns the number of generations in the infinite game at the time of migration.
+        /// @dev Marker for when generation snapshots start being saved in contract. 
+        fn pre_migration_generations(self: @ContractState) -> felt252 {
+            self.pre_migration_generations.read()
+        }
+
+        /// Gets the snapshot of a generation in the infinite game
         fn view_snapshot(self: @ContractState, generation: felt252) -> Snapshot {
             self.snapshots.read(generation)
         }

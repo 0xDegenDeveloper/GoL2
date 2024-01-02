@@ -39,6 +39,7 @@ trait IOldGol<TContractState> {
     fn allowance(self: @TContractState, owner: felt252, spender: felt252) -> u256;
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
+    fn pre_migration_generations(self: @TContractState) -> felt252;
     /// Write
     fn migrate(self: @TContractState, new_class_hash: ClassHash);
     fn transfer(self: @TContractState, to: felt252, value: u256);
@@ -209,6 +210,7 @@ fn test_post_migration_state() {
     /// Game
     let new_generation = NewGol.get_current_generation(INFINITE_GAME_GENESIS);
     let new_view_game = NewGol.view_game(INFINITE_GAME_GENESIS, new_generation);
+    let new_pre_migration_generations = NewGol.pre_migration_generations();
     /// ERC20
     let new_name = NewERC20.name();
     let new_symbol = NewERC20.symbol();
@@ -229,6 +231,8 @@ fn test_post_migration_state() {
     assert(old_generation == new_generation, 'generation should be the same');
     assert(old_view_game == new_view_game, 'view game should be the same');
     assert(old_allowance == new_allowance, 'allowance should be the same');
+    assert(new_pre_migration_generations == new_generation, 'migration gens saved wrong');
+    assert(new_pre_migration_generations != 0, 'migration gens saved wrong');
 }
 
 #[test]
