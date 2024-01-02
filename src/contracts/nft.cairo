@@ -258,7 +258,7 @@ mod GoL2NFT {
 
         /// Mint token to caller
         fn mint(ref self: ContractState, generation: felt252) {
-            /// Verify post-migration generation exists (todo: upon migrate, the current gen needs to be saved for reference)
+            /// Verify post-migration generation exists
             self.assert_valid_generation_post_migration(generation);
             /// Mint 
             self.mint_helper(get_caller_address(), generation.into());
@@ -324,7 +324,7 @@ mod GoL2NFT {
         fn get_generation_snapshot(self: @ContractState, generation: felt252) -> super::Snapshot {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
             let generations_in_gol: u256 = gol.pre_migration_generations().into();
-            if generation.into() <= generations_in_gol {
+            if generation.into() > generations_in_gol {
                 gol.view_snapshot(generation)
             } else {
                 self.snapshots.read(generation)

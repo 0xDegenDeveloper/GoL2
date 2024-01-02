@@ -6,7 +6,6 @@ use alexandria_math::pow;
 use debug::PrintTrait;
 
 /// Generates a json url for a token
-// todo: clean timestamp/generation/gamestate, add timestamp
 fn make_uri_array(
     token_id: u256, gamestate: felt252, copies: u256, timestamp: u64
 ) -> Array<felt252> {
