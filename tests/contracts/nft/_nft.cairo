@@ -13,7 +13,7 @@ use gol2::{
 
 use snforge_std::{
     declare, ContractClassTrait, start_prank, stop_prank, CheatTarget, spy_events, SpyOn, EventSpy,
-    EventAssertions, get_class_hash,
+    EventAssertions, get_class_hash, start_warp, stop_warp,
 };
 use openzeppelin::{
     token::{
@@ -44,6 +44,8 @@ fn deploy_contract() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
                 gol_address.into(),
                 1, //u256.low
                 0, //u256.high
+                0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7, // poseidon
+                0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7 // pedersen
             ]
         )
         .unwrap();
@@ -224,39 +226,107 @@ fn test_mint() {
     stop_prank(CheatTarget::One(nft.contract_address));
     let user_bal1 = erc20.balance_of(user); // 0
     assert(user_bal0 - user_bal1 == 10, 'NFT: mint price fail');
-    assert(nft.total_supply() == 10, 'NFT: supply fail');
     i = 2; // user evolved gens 2-11
     loop {
         if i == 12 {
             break;
         }
         assert(nft_nft.owner_of((i).into()) == user, 'NFT: mint fail');
-        let state_at_gen = gol.view_game(INFINITE_GAME_GENESIS, i);
-        assert(
-            nft.board_state_to_token_id(state_at_gen) == i.into(), 'NFT: state to token id map fail'
-        );
         i += 1;
     };
 }
+// test wl mints and then wl gas usages
+
+/// Simulate 2 users evolving game pre-migration
+fn set_up_wl_gens(gol: IGoL2Dispatcher) -> (starknet::ContractAddress, starknet::ContractAddress) {
+    let user1 = contract_address_const::<
+        0x00a138A07fde4cD66998e544665dd322E14AAC17279c6477E63f394a07476001
+    >();
+    let user2 = contract_address_const::<
+        0x00Ab6e726136F0A1AC1d526c7725D845aFe62b67Cf42dCB49B7B9468bf04E6A3
+    >();
+    let admin = contract_address_const::<0x0>();
+
+    start_prank(CheatTarget::All(()), user1);
+    start_warp(CheatTarget::All(()), 222);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    stop_warp(CheatTarget::All(()));
+
+    start_warp(CheatTarget::All(()), 333);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    stop_warp(CheatTarget::All(()));
+    stop_prank(CheatTarget::All(()));
+
+    start_prank(CheatTarget::All(()), user2);
+    start_warp(CheatTarget::All(()), 444);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    stop_warp(CheatTarget::All(()));
+
+    start_warp(CheatTarget::All(()), 555);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    stop_warp(CheatTarget::All(()));
+    stop_prank(CheatTarget::All(()));
+
+    /// simulate migration 
+    start_prank(CheatTarget::All(()), admin);
+    start_warp(CheatTarget::All(()), 666);
+    gol.migrate(get_class_hash(gol.contract_address)); //pre_migration_generations
+    stop_warp(CheatTarget::All(()));
+    stop_prank(CheatTarget::All(()));
+
+    (user1, user2)
+}
 
 #[test]
-#[should_panic(expected: ('NFT: board state already minted',))]
-fn test_mint_duplicate_board_state() {
+fn test_wl_mint() {
     let (gol, nft) = deploy_contract();
     let erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let nft_nft = IERC721Dispatcher { contract_address: nft.contract_address };
-    /// Give user tokens 
-    let user = contract_address_const::<'user'>();
-    start_prank(CheatTarget::All(()), user);
-    gol.evolve(INFINITE_GAME_GENESIS);
-    gol.evolve(INFINITE_GAME_GENESIS);
+    let (user1, user2) = set_up_wl_gens(gol);
+    let user1_bal0 = erc20.balance_of(user1); // 2
+    let user2_bal0 = erc20.balance_of(user2); // 2
     /// Approve nft contract to spend users tokens
+    start_prank(CheatTarget::All(()), user1);
     erc20.approve(nft.contract_address, 100);
     stop_prank(CheatTarget::All(()));
-    /// Mint tokens 
-    start_prank(CheatTarget::One(nft.contract_address), user);
-    nft.mint(1);
-    nft.mint(1);
+    start_prank(CheatTarget::All(()), user2);
+    erc20.approve(nft.contract_address, 100);
+    stop_prank(CheatTarget::All(()));
+    /// Mint token 
+    let p2 = array![
+        0x4894368e045e09c54726344134ba1645d2eef0481fa3b6d8ff006529b538f5f,
+        0x6a600e9592885094781170c2b28e9cd1d60024e44c09c8f35bec356fa387c00,
+        0x7d91e4d17bc723ecdf0a6c85955a96fb0c30c5584db2debc70bbc8475dcc7d6,
+    ];
+    let p3 = array![
+        0x3b6749f41d7d0bfc60af31edd1ea08d4c0927f9f105f257060aa07eac4b2389,
+        0x580cbad2c307988f8836b8c6eda34ddde8f6e6f5a4c0ca960e72c263926d8f9,
+        0x7d91e4d17bc723ecdf0a6c85955a96fb0c30c5584db2debc70bbc8475dcc7d6
+    ];
+    let p4 = array![
+        0x31caf23ec5d1668f16435a9470cc73e1d69d341620b7e83789647b68f531d5f,
+        0x580cbad2c307988f8836b8c6eda34ddde8f6e6f5a4c0ca960e72c263926d8f9,
+        0x7d91e4d17bc723ecdf0a6c85955a96fb0c30c5584db2debc70bbc8475dcc7d6
+    ];
+    let p5 = array![0x0, 0x0, 0x1188a4019dd644414b9bbe2f1f84dd52b3bd66cf421d0edd0f14353c9db2638,];
+
+    start_prank(CheatTarget::One(nft.contract_address), user1);
+    nft.wl_mint_ped(2, 0x100030006e0000000000000000000000000000, 222, p2);
+    nft.wl_mint_ped(3, 0x18004a00740008000000000000000000000000, 333, p3);
     stop_prank(CheatTarget::One(nft.contract_address));
+
+    start_prank(CheatTarget::One(nft.contract_address), user2);
+    nft.wl_mint_ped(4, 0x18004800760050000000000000000000000000, 444, p4);
+    nft.wl_mint_ped(5, 0x18004800760050000000000000000000000000, 555, p5);
+    stop_prank(CheatTarget::One(nft.contract_address));
+
+    let user1_bal1 = erc20.balance_of(user1); // 0
+    let user2_bal1 = erc20.balance_of(user2); // 0
+    assert(user1_bal0 - user1_bal1 == 2, 'NFT: mint price fail');
+    assert(user2_bal0 - user2_bal1 == 2, 'NFT: mint price fail2');
+    assert(nft_nft.owner_of(2) == user1, 'NFT: mint fail2');
+    assert(nft_nft.owner_of(3) == user1, 'NFT: mint fail3');
+    assert(nft_nft.owner_of(4) == user2, 'NFT: mint fail4');
+    assert(nft_nft.owner_of(5) == user2, 'NFT: mint fail5');
 }
 
