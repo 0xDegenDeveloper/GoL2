@@ -160,6 +160,7 @@ fn test_evolve() {
 
     stop_prank(CheatTarget::All(()));
 }
+
 #[test]
 fn test_evolve_with_storage() {
     let gol = deploy_contract('GoL2');

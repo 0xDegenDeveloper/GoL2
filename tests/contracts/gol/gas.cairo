@@ -52,6 +52,7 @@ trait IOldGol<TContractState> {
     fn give_life_to_cell(ref self: TContractState, cell_index: felt252);
 }
 
+/// Helpers
 fn get_old_gol() -> IOldGolDispatcher {
     IOldGolDispatcher {
         contract_address: contract_address_const::<
@@ -74,7 +75,6 @@ fn upgrade(OldGol: IOldGolDispatcher) -> IGoL2Dispatcher {
     stop_prank(CheatTarget::All(()));
     IGoL2Dispatcher { contract_address: OldGol.contract_address }
 }
-
 
 #[test]
 #[fork("MAINNET")]
@@ -114,7 +114,6 @@ fn evolve() {
     }
 }
 
-
 #[test]
 #[fork("MAINNET")]
 #[ignore]
@@ -139,7 +138,7 @@ fn evolve_with_storage() {
 
     stop_prank(CheatTarget::All(()));
 
-    let mut gases = array!['evol_new', 'no store', old_gas, 'w/stor', new_gas];
+    let mut gases = array!['evolve 2', 'no store', old_gas, 'w/stor', new_gas];
 
     loop {
         match gases.pop_front() {
@@ -166,6 +165,7 @@ fn create() {
         OldGol.evolve(INFINITE_GAME_GENESIS);
         evolves += 1;
     };
+
     /// Get gas cost pre-mirgration
     let mut old_gas = testing::get_available_gas();
     gas::withdraw_gas().unwrap();
@@ -230,7 +230,7 @@ fn give_life_to_cell() {
     new_gas -= testing::get_available_gas();
     stop_prank(CheatTarget::All(()));
 
-    let mut gases = array!['add life', 'old', old_gas, 'new', new_gas];
+    let mut gases = array!['giv life', 'old', old_gas, 'new', new_gas];
 
     loop {
         match gases.pop_front() {
