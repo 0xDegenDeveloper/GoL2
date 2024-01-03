@@ -4,7 +4,7 @@ use alexandria_ascii::ToAsciiTrait;
 /// Create an SVG string for a cell array.
 /// Returns the SVG string (Array<felt252>) and the number of alive cells in the array.
 /// @dev URI special chars are encoded like so:
-///     % -> %25, space -> %20, " -> %22, # -> %23, < -> %3C, > -> %3E
+/// % -> %25, space -> %20, " -> %22, # -> %23, < -> %3C, > -> %3E
 /// @dev SVG special chars are double encoded so that 
 /// when browsers replace special chars, the SVG is not broken.
 /// i.e. %2525 -> %25 -> %, %2523 -> %23 -> #, %253C -> %3C -> <, %253E -> %3E -> >

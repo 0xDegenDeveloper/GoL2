@@ -181,6 +181,7 @@ mod GoL2NFT {
         fn token_uri(self: @ContractState, token_id: u256) -> Array<felt252> {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
             let current_generation_int = gol.get_current_generation(INFINITE_GAME_GENESIS).into();
+
             assert(0 < token_id && token_id <= current_generation_int, 'GoL2NFT: invalid token id');
 
             let game_state = gol.view_game(INFINITE_GAME_GENESIS, token_id.try_into().unwrap());

@@ -5,7 +5,9 @@ use alexandria_math::pow;
 
 use debug::PrintTrait;
 
-/// Generates a json url for a token
+/// Create a JSON URL for a token.
+/// @dev URI special chars are encoded like so:
+/// (space) -> %20, # -> %23
 fn make_uri_array(
     token_id: u256, gamestate: felt252, cell_array: Array<felt252>, copies: u256, timestamp: u64
 ) -> Array<felt252> {
@@ -46,61 +48,56 @@ fn make_uri_array(
     uri.append('","external_url":');
     uri.append('"https://gol2.io",'); // todo: specific url for token ? 
     /// Attributes
-    uri.append('"attributes":');
-    let mut attributes = make_attributes(alive_count, token_id, copies, timestamp);
-    loop {
-        match attributes.pop_front() {
-            Option::Some(el) => { uri.append(el); },
-            Option::None => { break; }
-        }
-    };
+    make_attributes(ref uri, alive_count, token_id, copies, timestamp);
     uri.append('}');
     uri
 }
 
-fn make_attributes(alive: u32, token_id: u256, copies: u256, timestamp: u64) -> Array<felt252> {
-    let mut attributes: Array<felt252> = array!['['];
+/// Add the attributes to the token URI
+fn make_attributes(
+    ref uri: Array<felt252>, alive: u32, token_id: u256, copies: u256, timestamp: u64
+) {
+    uri.append('"attributes": [');
     /// Game Mode 
-    attributes.append('{"trait_type":"Game%20Mode",');
-    attributes.append('"value":"Infinite"},');
+    uri.append('{"trait_type":"Game%20Mode",');
+    uri.append('"value":"Infinite"},');
     /// Timestamp 
-    attributes.append('{"trait_type":"Timestamp",');
-    attributes.append('"value":"');
-    attributes.append(timestamp.to_ascii());
+    uri.append('{"trait_type":"Timestamp",');
+    uri.append('"value":"');
+    uri.append(timestamp.to_ascii());
     /// Cell Count
-    attributes.append('"},{"trait_type":');
-    attributes.append('"Cell%20Count",');
-    attributes.append('"value":"');
-    attributes.append(alive.to_ascii());
+    uri.append('"},{"trait_type":');
+    uri.append('"Cell%20Count",');
+    uri.append('"value":"');
+    uri.append(alive.to_ascii());
     /// Copies
-    attributes.append('"},{"trait_type":"Copies",');
-    attributes.append('"value":"');
+    uri.append('"},{"trait_type":"Copies",');
+    uri.append('"value":"');
     if copies.high == 0 {
-        attributes.append(copies.low.to_ascii());
+        uri.append(copies.low.to_ascii());
     } else {
         let mut copies_ascii_array = copies.to_ascii();
         loop {
             match copies_ascii_array.pop_front() {
-                Option::Some(el) => { attributes.append(el); },
+                Option::Some(el) => { uri.append(el); },
                 Option::None => { break; }
             }
         };
     }
     /// Generation
-    attributes.append('"},{"trait_type":"Generation",');
-    attributes.append('"value":"');
+    uri.append('"},{"trait_type":"Generation",');
+    uri.append('"value":"');
     if token_id.high == 0 {
-        attributes.append(token_id.low.to_ascii());
+        uri.append(token_id.low.to_ascii());
     } else {
         let mut generation_ascii_array = token_id.to_ascii();
         loop {
             match generation_ascii_array.pop_front() {
-                Option::Some(el) => { attributes.append(el); },
+                Option::Some(el) => { uri.append(el); },
                 Option::None => { break; }
             }
         };
     }
-    attributes.append('"}]');
-    attributes
+    uri.append('"}]');
 }
 
