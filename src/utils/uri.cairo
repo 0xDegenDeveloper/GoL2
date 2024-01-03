@@ -103,21 +103,5 @@ fn make_attributes(alive: u32, token_id: u256, copies: u256, timestamp: u64) -> 
     }
     attributes.append('"}]');
     attributes
-// let generation_int: u256 = generation.into();
-// Generation (todo: needed ?)
-// attributes.append('{"trait_type":"Generation",');
-// attributes.append('"value":"');
-// if generation_int.high == 0 {
-//     attributes.append(generation_int.low.to_ascii());
-// } else {
-//     let mut generation_ascii_array = generation_int.to_ascii();
-//     loop {
-//         match generation_ascii_array.pop_front() {
-//             Option::Some(el) => { attributes.append(el); },
-//             Option::None => { break; }
-//         }
-//     };
-// }
-// attributes.append('"},');
 }
 
