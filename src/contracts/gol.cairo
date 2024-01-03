@@ -10,7 +10,6 @@ trait IGoL2<TContractState> {
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
-    fn evolve_with_storage(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
     fn initializer(ref self: TContractState);
@@ -297,20 +296,11 @@ mod GoL2 {
             self.save_game(game_id, generation, game);
             self.save_generation_id(game_id, generation);
             self.reward_user(caller);
-        }
-
-        // todo: test cost of these 2 slots
-        // Jorik said there is a 'bug' on mainnet where syscalls are not reporting their gas
-        fn evolve_with_storage(ref self: ContractState, game_id: felt252) {
-            let caller = self.ensure_user();
-            let (generation, game) = self.evolve_game(game_id, caller);
-            self.save_game(game_id, generation, game);
-            self.save_generation_id(game_id, generation);
+            /// Save a snapshot of the generation
             self
                 .save_generation_snapshot(
                     generation, caller, game, starknet::get_block_timestamp()
                 );
-            self.reward_user(caller);
         }
 
         fn give_life_to_cell(ref self: ContractState, cell_index: usize) {
