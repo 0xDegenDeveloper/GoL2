@@ -6,13 +6,13 @@ mod utils {
     mod uri;
     mod whitelist_pedersen;
     mod whitelist_poseidon;
+    mod test_contract;
 }
 
-mod scripts {// mod deploy_script;
+mod scripts { // mod deploy_script;
 }
 
 mod contracts {
     mod gol;
     mod nft;
-    mod test_contract;
 }

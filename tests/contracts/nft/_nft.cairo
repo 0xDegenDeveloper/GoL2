@@ -6,9 +6,11 @@ use gol2::{
             GoL2NFT, IGoL2NFTDispatcher, IGoL2NFTDispatcherTrait, IERC721Metadata,
             IERC721MetadataDispatcher, IERC721MetadataDispatcherTrait
         },
-        test_contract::{ITestTraitDispatcher, ITestTraitDispatcherTrait}
     },
-    utils::constants::{INFINITE_GAME_GENESIS, LOW_ARRAY_LEN, HIGH_ARRAY_LEN}
+    utils::{
+        constants::{INFINITE_GAME_GENESIS, LOW_ARRAY_LEN, HIGH_ARRAY_LEN},
+        test_contract::{ITestTraitDispatcher, ITestTraitDispatcherTrait}
+    }
 };
 
 use snforge_std::{
