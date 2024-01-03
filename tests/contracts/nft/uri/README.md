@@ -4,7 +4,7 @@
 
   - This is an example of what the JSON object looks like once the result of token_uri() is resolved by the browser.
 
-- `test_uri_and_svg.py`
+- `nft_uri_and_svg.py`
 
   - This script outputs the JSON URI for the acorn's evolution (generation #2).
 

@@ -8,7 +8,7 @@
 
 Run the uri_tester python script to generate the JSON URI:
 
-`python3 ./tests/contracts/nft/uri/test_uri_and_svg.py`
+`python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py`
 
 ### Then
 
