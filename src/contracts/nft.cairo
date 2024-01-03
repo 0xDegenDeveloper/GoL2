@@ -72,24 +72,19 @@ mod GoL2NFT {
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
 
-
     /// Ownable
     #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
-
     /// Upgradeable
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
-
     /// ERC721
     #[abi(embed_v0)]
     impl ERC721Impl = ERC721Component::ERC721Impl<ContractState>;
     impl ERC721InternalImpl = ERC721Component::InternalImpl<ContractState>;
-
     /// SRC5
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
-
 
     #[constructor]
     fn constructor(
