@@ -24,13 +24,6 @@ use debug::PrintTrait;
 // todo: build a multi call script for team to use, test runs with redeployment of this https://goerli.voyager.online/class/0x04572af1cd59b8b91055ebb78df8f1d11c59f5270018b291366ba4585d4cdff0?lang=en-US&theme=light
 // using an old instnace of the gol contract 
 
-/// Setup
-fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
-    let contract = declare(name);
-    let contract_address = contract.deploy(@array!['admin']).unwrap();
-    IGoL2Dispatcher { contract_address }
-}
-
 #[starknet::interface]
 trait IOldGol<TContractState> {
     /// Read
