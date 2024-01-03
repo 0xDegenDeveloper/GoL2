@@ -1,3 +1,5 @@
+use super::super::setup::{MERKLE_ROOT, deploy_mocks, mock_whitelist_setup};
+use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use starknet::contract_address_const;
 use snforge_std::{
     declare, ContractClassTrait, start_prank, stop_prank, start_warp, stop_warp, CheatTarget,
@@ -13,17 +15,8 @@ use gol2::{
         },
     }
 };
-use openzeppelin::token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use debug::PrintTrait;
 
-/// Setup
-fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
-    let contract = declare(name);
-    let contract_address = contract.deploy(@array!['admin']).unwrap();
-    IGoL2Dispatcher { contract_address }
-}
-
-/// Tests
 #[test]
 fn test_constants() {
     assert(
@@ -44,7 +37,7 @@ fn test_constants() {
 
 #[test]
 fn test_view_game() {
-    let gol = deploy_contract('GoL2');
+    let (gol, _) = deploy_mocks();
     let gamestate = gol.view_game(INFINITE_GAME_GENESIS, 1);
     let gamestate2 = gol.view_game(INFINITE_GAME_GENESIS, 2);
     assert(gamestate == INFINITE_GAME_GENESIS, 'Invalid gamestate');
@@ -53,7 +46,7 @@ fn test_view_game() {
 
 #[test]
 fn test_get_current_generation() {
-    let gol = deploy_contract('GoL2');
+    let (gol, _) = deploy_mocks();
     let gen = gol.get_current_generation(INFINITE_GAME_GENESIS);
     assert(gen == 1, 'Invalid game_state');
 }
@@ -61,7 +54,7 @@ fn test_get_current_generation() {
 
 #[test]
 fn test_create() {
-    let gol = deploy_contract('GoL2');
+    let (gol, _) = deploy_mocks();
     let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let creator = contract_address_const::<'creator'>();
     let mut spy = spy_events(SpyOn::One(gol.contract_address));
@@ -119,7 +112,7 @@ fn test_create() {
 
 #[test]
 fn test_evolve() {
-    let gol = deploy_contract('GoL2');
+    let (gol, _) = deploy_mocks();
     let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let mut spy = spy_events(SpyOn::One(gol.contract_address));
     let creator = contract_address_const::<'creator'>();
@@ -175,7 +168,7 @@ fn test_evolve() {
 
 #[test]
 fn test_give_life_to_cell() {
-    let gol = deploy_contract('GoL2');
+    let (gol, _) = deploy_mocks();
     let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let acorn_evolved = 0x100030006e0000000000000000000000000000;
     let mut spy = spy_events(SpyOn::One(gol.contract_address));

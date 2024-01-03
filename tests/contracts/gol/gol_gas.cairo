@@ -1,15 +1,6 @@
-use starknet::{contract_address_const, ClassHash, call_contract_syscall};
-use snforge_std::{
-    declare, ContractClassTrait, start_prank, stop_prank, CheatTarget, spy_events, SpyOn, EventSpy,
-    EventAssertions, get_class_hash, EventFetcher, event_name_hash, Event
-};
 use gol2::{
     contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
-    utils::constants::{
-        INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
-        FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
-        GIVE_LIFE_CREDIT_REQUIREMENT
-    },
+    utils::constants::{INFINITE_GAME_GENESIS},
 };
 use openzeppelin::{
     access::ownable::{OwnableComponent, interface::{IOwnableDispatcher, IOwnableDispatcherTrait}},
@@ -19,14 +10,10 @@ use openzeppelin::{
     },
     token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait},
 };
+use starknet::{contract_address_const, ClassHash, call_contract_syscall};
+use snforge_std::{declare, ContractClassTrait, start_prank, stop_prank, CheatTarget};
 use debug::PrintTrait;
 
-/// Setup
-fn deploy_contract(name: felt252) -> IGoL2Dispatcher {
-    let contract = declare(name);
-    let contract_address = contract.deploy(@array!['admin']).unwrap();
-    IGoL2Dispatcher { contract_address }
-}
 
 #[starknet::interface]
 trait IOldGol<TContractState> {
@@ -53,6 +40,8 @@ trait IOldGol<TContractState> {
 }
 
 /// Helpers
+
+/// Get old GoL2 dispatcher
 fn get_old_gol() -> IOldGolDispatcher {
     IOldGolDispatcher {
         contract_address: contract_address_const::<
@@ -61,6 +50,7 @@ fn get_old_gol() -> IOldGolDispatcher {
     }
 }
 
+/// Simulate upgrade/migration
 fn upgrade(OldGol: IOldGolDispatcher) -> IGoL2Dispatcher {
     let new_gol_hash = declare('GoL2').class_hash;
     /// Gol admin address
