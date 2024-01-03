@@ -1,4 +1,4 @@
-const { merkle, num } = require("starknet");
+const { merkle, num, hash } = require("starknet");
 const { MerkleTree } = require("merkletreejs");
 const {
   poseidonHashMany,
@@ -60,18 +60,20 @@ const createTree = async () => {
     // return num.toBigInt(hashed_leaf);
     return hashed_leaf;
   });
-  const poseidon = await buildPoseidon();
-  const poseidonHash = (inputs) => {
-    const hash = poseidon(inputs.map(MerkleTree.bigNumberify));
-    const bn = MerkleTree.bigNumberify(poseidon.F.toString(hash));
-    return MerkleTree.bufferify(bn);
-  };
+  // const poseidon = await buildPoseidon();
+  // const poseidonHash = (inputs) => {
+  //   const hash = poseidon(inputs.map(num.toBigInt));
+  //   // const hash = poseidon(inputs.map(MerkleTree.bigNumberify));
+  //   // const bn = num.toBigInt(poseidon.F.toString(hash));
+  //   const bn = MerkleTree.bigNumberify(poseidon.F.toString(hash));
+  //   return MerkleTree.bufferify(bn);
+  // };
 
   console.log("leaves", leaves);
 
-  console.log("p hash of [1,2,3]:", poseidonHash([1, 2, 3, 4]).toString("hex"));
+  // console.log("p hash of [1,2,3]:", poseidonHash([1, 2, 3]).toString("hex"));
   /// bug is here:
-  return new MerkleTree(leaves, poseidonHashMany);
+  return new MerkleTree(leaves, hash.poseidon);
 };
 
 const t = createTree();
