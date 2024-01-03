@@ -4,6 +4,7 @@ mod utils {
 }
 
 mod contracts {
+    mod setup;
     mod gol {
         mod _gol;
         mod gol_internal;
@@ -14,6 +15,8 @@ mod contracts {
 
     mod nft {
         mod _nft;
+        mod nft_upgradeable;
+        mod nft_ownable;
         mod uri_svg;
         mod gas;
     }
