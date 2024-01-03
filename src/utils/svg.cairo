@@ -4,7 +4,7 @@ use alexandria_ascii::ToAsciiTrait;
 /// Create an SVG string for a cell array.
 /// Returns the SVG string (Array<felt252>) and the number of alive cells in the array.
 /// @dev URI special chars are encoded like so:
-/// % -> %25, space -> %20, " -> %22, # -> %23, < -> %3C, > -> %3E.
+///     % -> %25, space -> %20, " -> %22, # -> %23, < -> %3C, > -> %3E
 /// @dev SVG special chars are double encoded so that 
 /// when browsers replace special chars, the SVG is not broken.
 /// i.e. %2525 -> %25 -> %, %2523 -> %23 -> #, %253C -> %3C -> <, %253E -> %3E -> >
@@ -87,46 +87,30 @@ fn make_svg_array(cell_array: Array<felt252>) -> (Array<felt252>, u32) {
 }
 
 /// Add a line shape to the SVG array
-fn add_line(ref svg_array: Array<felt252>, x1: felt252, y1: felt252, x2: felt252, y2: felt252) {
-    let x1_int: u32 = x1.try_into().unwrap();
-    let y1_int: u32 = y1.try_into().unwrap();
-    let x2_int: u32 = x2.try_into().unwrap();
-    let y2_int: u32 = y2.try_into().unwrap();
-
+fn add_line(ref svg_array: Array<felt252>, x1: u32, y1: u32, x2: u32, y2: u32) {
     svg_array.append('%253Cline%2520x1=%2522'); ///<line x1="
-    svg_array.append(x1_int.to_ascii());
+    svg_array.append(x1.to_ascii());
     svg_array.append('%2522%2520y1=%2522'); /// y1="
-    svg_array.append(y1_int.to_ascii());
+    svg_array.append(y1.to_ascii());
     svg_array.append('%2522%2520x2=%2522'); /// x2="
-    svg_array.append(x2_int.to_ascii());
+    svg_array.append(x2.to_ascii());
     svg_array.append('%2522%2520y2=%2522'); /// y2="
-    svg_array.append(y2_int.to_ascii());
+    svg_array.append(y2.to_ascii());
     svg_array.append('%2522/%253E'); ///"/>
 }
 
 /// Add a rectangle shape to the SVG array
-fn add_rect(
-    ref svg_array: Array<felt252>,
-    w: felt252,
-    h: felt252,
-    translate_x: felt252,
-    translate_y: felt252
-) {
-    let w_int: u32 = w.try_into().unwrap();
-    let h_int: u32 = h.try_into().unwrap();
-    let translate_x_int: u32 = translate_x.try_into().unwrap();
-    let translate_y_int: u32 = translate_y.try_into().unwrap();
-
+fn add_rect(ref svg_array: Array<felt252>, w: u32, h: u32, translate_x: u32, translate_y: u32,) {
     svg_array.append('%253Crect'); //<rect
     svg_array.append('%2520width=%2522'); // width="
-    svg_array.append(w_int.to_ascii());
+    svg_array.append(w.to_ascii());
     svg_array.append('%2522%2520height=%2522'); //" height="
-    svg_array.append(h_int.to_ascii());
+    svg_array.append(h.to_ascii());
     svg_array.append('%2522%2520transform=%2522'); //" transform="
     svg_array.append('translate('); //translate(
-    svg_array.append(translate_x_int.to_ascii());
+    svg_array.append(translate_x.to_ascii());
     svg_array.append('%2520'); // (space)
-    svg_array.append(translate_y_int.to_ascii());
+    svg_array.append(translate_y.to_ascii());
     svg_array.append(')%2522/%253E'); //)"/>
 }
 
