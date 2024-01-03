@@ -6,19 +6,19 @@ mod utils {
 mod contracts {
     mod setup;
     mod gol {
-        mod gol;
+        mod gol_gas;
         mod gol_internal;
         mod gol_ownable;
         mod gol_upgradeable;
-        mod gol_gas;
+        mod gol;
     }
 
     mod nft {
-        mod nft;
-        mod nft_upgradeable;
-        mod nft_ownable;
-        mod uri_svg;
         mod nft_gas;
+        mod nft_ownable;
+        mod nft_upgradeable;
+        mod nft_uri_and_svg;
+        mod nft;
     }
 }
 

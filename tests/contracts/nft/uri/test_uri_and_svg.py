@@ -1,6 +1,6 @@
 import subprocess
 
-command = 'snforge test contracts::nft::uri_svg --ignored'
+command = 'snforge test contracts::nft::nft_uri_and_svg --ignored'
 print('\nRunning: `' + command + '`, parsing output, and converting to ASCII...\n')
 
 # Execute snforge test command

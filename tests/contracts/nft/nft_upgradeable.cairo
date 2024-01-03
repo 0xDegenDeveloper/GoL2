@@ -9,7 +9,6 @@ use openzeppelin::{
     upgrades::interface::{IUpgradeable, IUpgradeableDispatcher, IUpgradeableDispatcherTrait},
 };
 
-// todo: test event
 #[test]
 fn test_upgrade_owner() {
     let (_, nft) = deploy_mocks();

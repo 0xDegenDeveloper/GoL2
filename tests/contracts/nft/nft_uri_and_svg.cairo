@@ -27,42 +27,16 @@ use openzeppelin::{
 };
 use alexandria_math::pow;
 use debug::PrintTrait;
-
-fn deploy_contract() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
-    let gol_contract = declare('GoL2');
-    let nft_contract = declare('GoL2NFT');
-
-    let gol_address = gol_contract.deploy(@array!['admin']).unwrap();
-    let nft_address = nft_contract
-        .deploy(
-            @array![
-                'admin',
-                'Game of Life NFT',
-                'GoL2NFT',
-                gol_address.into(),
-                gol_address.into(),
-                1, //u256.low
-                0, //u256.high
-                0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7, // poseidon
-                0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7 // pedersen
-            ]
-        )
-        .unwrap();
-    (
-        IGoL2Dispatcher { contract_address: gol_address },
-        IGoL2NFTDispatcher { contract_address: nft_address }
-    )
-}
+use super::super::setup::{MERKLE_ROOT, deploy_mocks, mock_whitelist_setup};
 
 
 /// Constructor
-// todo: mint with storage to set timestamp and check copies
 #[test]
 #[ignore]
 fn test_uri_svg() {
     let admin = contract_address_const::<0x0>();
     let user = contract_address_const::<0xbeef>();
-    let (gol, nft) = deploy_contract();
+    let (gol, nft) = deploy_mocks();
     let nft_meta = IERC721MetadataDispatcher { contract_address: nft.contract_address };
     let gol_erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
     let gol_class_hash = get_class_hash(gol.contract_address);

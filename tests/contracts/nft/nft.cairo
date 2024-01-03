@@ -45,7 +45,6 @@ fn test_deploy() {
 
     assert(nft.mint_price() == 1, 'NFT: mint price incorrect');
     assert(nft.mint_token_address() == gol.contract_address, 'NFT: mint addr incorrect');
-    // todo: ped vs pos
     assert(nft.merkle_root() == MERKLE_ROOT, 'NFT: merkle root incorrect');
 
     mock_whitelist_setup(gol);
