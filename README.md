@@ -22,7 +22,7 @@
 ## Overview <a name="overview"></a>
 
 An implementation of Conway's Game of Life as a contract on StarkNet, written
-in Cairo, with an interactive element.
+in Cairo, with an interactive element. Originally written in Cairo 0 and now migrated to Cairo 1; for more details about this migration see [here](./MIGRATION.md#overview).
 
 Players can alter the state of the game, affecting the future of the simulation.
 People may create interesting states or coordinate with others to achieve some
@@ -163,6 +163,8 @@ fn give_life_to_cell (
 )
 ```
 
+**_The contract uses OpenZeppelin's ownable component, gaining its external functions (`owner(), transfer_ownership(), etc.`) defined [here](https://github.com/OpenZeppelin/cairo-contracts/blob/441e6ce76ade91817068e4d4c5168dbd3ed20375/src/access/ownable/interface.cairo#L7). An empty `initializer()` function was also added, this blank function is only here for interface definition for future contract upgrades._**
+
 ### View functions:
 
 1. View game
@@ -188,15 +190,23 @@ fn get_current_generation (
 
 3. Get snapshot details
 
-Gets the snapshot of a specific generation in the infinite game. **_Note: A snapshot is a capture of an evolution, if a cell is revived for a generation, this is not recorded in the snapshot, only its original state/creator/timestamp._**
+Gets the snapshot of a specific generation in the infinite game. **_Note: A snapshot is a capture of an evolution, if a cell is revived during a generation, this is not recorded in the snapshot, only its original state/creator/timestamp. Only post-migration snapshot are stored in this (GoL2) contract. Pre-migration snapshots are stored in the GoL2NFT contract; more info [here](./MIGRATION.md)._**
 
 ```
 fn view_snapshot (
-      generation: felt252 - The generation {}
+      generation: felt252 - The generation's snapshot to view
 ) -> snapshot: Snapshot
 ```
 
-**_A Snapshot is a new struct we have added, it is defined below._**
+**_A Snapshot is a new struct we have added, it is defined [below](#structs)._**
+
+4. Get the migration generation marker
+
+Gets the current generation (in the infinite game) at the time of migration. **_Note: every generation (from 1 to this number) does not store its snapshot details in the GoL2 contract, they are instead added to the GoL2NFT contract upon whitelist mint. Post migration, all snapshot details are stored in the GoL2 contract. More about this [here](./MIGRATION.md)._**
+
+```
+fn migration_generation_marker() -> felt252
+```
 
 ## Architecture <a name="architecture"></a>
 
@@ -240,17 +250,18 @@ Summary:
   Max value is `128`, added to `HIGH_ARRAY_LEN` has to be equal to `DIM**2`
 - `HIGH_ARRAY_LEN` - Length of an array that represents the "high" value of the game board;
   Max value is `128`, added to `LOW_ARRAY_LEN` has to be equal to `DIM**2`
+- `BOARD_SQUARED` - The number of cells in the game board
 
-#### Events that are emitted by the contract. These are later parsed by the [indexer](indexer/README.md). (defined in `utils/events.cairo`). <a name="events"></a>
+#### Events that are emitted by the contract. These are later parsed by the [indexer](indexer/README.md). <a name="events"></a>
 
-- `GameCreated` - Indicates a new game was created
+- `GameCreated` - Indicates a new game was created.
 
   - values:
     - user_id: ContractAddress -> Address of the user who created the game
     - game_id: felt252 -> ID of the newly created game
     - state: felt252 -> Genesis state of the game
 
-- `GameEvolved` - Indicates a game was progressed
+- `GameEvolved` - Indicates a game was progressed.
 
   - values:
     - user_id: ContractAddress -> Address of a user that evolved the game
@@ -258,7 +269,7 @@ Summary:
     - generation: felt252 -> New generation of the game
     - state: felt252 -> New state of the game
 
-- `CellRevived` - Indicated a cell in infinite game was revived
+- `CellRevived` - Indicated a cell in infinite game was revived.
 
   - values:
     - user_id: ContractAddress -> ID of the user that gave life to cell
@@ -266,11 +277,9 @@ Summary:
     - cell_index: usize -> Index of the revived cell
     - state: felt252 -> New state of the game
 
-// todo: new snapshot ?
+#### Storage variables used by the contract. <a name="storage"></a>
 
-#### Storage variables used by the contract. (defined in `utils/state.cairo`). <a name="storage"></a>
-
-- `stored_game` - Holds game information on chain
+- `stored_game` - Holds game information on chain.
 
   - parameters:
 
@@ -280,7 +289,7 @@ Summary:
   - values:
     - state: felt252 -> The state of the game_id at the given generation
 
-- `current_generation` - Holds latest generation for game_ids
+- `current_generation` - Holds latest generation for game_ids.
 
   - parameters:
 
@@ -290,7 +299,7 @@ Summary:
 
     - game_generation: felt252 -> Latest generation of the given game_id
 
-- `is_migrated` - States if the contract has been upgraded to Cairo 1 yet
+- `is_migrated` - States if the contract has been upgraded to Cairo 1 yet.
 
   - parameters:
 
@@ -298,9 +307,9 @@ Summary:
 
   - values:
 
-    - is_migrated: bool -> If the migration txn has occurred
+    - is_migrated: bool -> If the migration has occurred
 
-- `snapshots` - Holds a record of generation Snapshots
+- `snapshots` - Holds a record of generation Snapshots.
 
   - parameters:
 
@@ -309,6 +318,16 @@ Summary:
   - values:
 
     - snapshot: Snapshot - A snapshot object of the current generation
+
+- `migration_generation_marker` - Holds a record of the current generation in the infinite game at the time of migration.
+
+  - parameters:
+
+    - none
+
+  - values:
+
+    - marker: felt252 - The current generation in the infinite game at the time of migration
 
 #### Structs <a name="structs"></a>
 
@@ -352,7 +371,7 @@ It takes an array of cells (representing binary), and verifies it has the proper
 
 #### Binary Representation:
 
-`0b:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000001000000000001100111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`
+`0b:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111001100000000000100000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`
 
 Next, the array is passed to the `srs/utils/helpers.cairo::pack_cells` function, where the binary representation is converted into its decimal representation.
 
