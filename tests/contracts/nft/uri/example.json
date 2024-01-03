@@ -5,9 +5,9 @@
   "external_url": "https://gol2.io",
   "attributes": [
     { "trait_type": "Game Mode", "value": "Infinite" },
-    { "trait_type": "Timestamp", "value": "222" },
-    { "trait_type": "Cell Count", "value": "225" },
-    { "trait_type": "Copies", "value": "1" },
-    { "trait_type": "Generation", "value": "2" }
+    { "trait_type": "Timestamp", "value": 222 },
+    { "trait_type": "Cell Count", "value": 225 },
+    { "trait_type": "Copies", "value": 1 },
+    { "trait_type": "Generation", "value": 2 }
   ]
 }
