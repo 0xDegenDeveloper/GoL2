@@ -9,7 +9,7 @@ use debug::PrintTrait;
 /// @dev URI special chars are encoded like so:
 /// (space) -> %20, # -> %23
 fn make_uri_array(
-    token_id: u256, gamestate: felt252, cell_array: Array<felt252>, copies: u256, timestamp: u64
+    token_id: u256, gamestate: felt252, cell_array: Array<felt252>, copies: felt252, timestamp: u64
 ) -> Array<felt252> {
     let gamestate_int: u256 = gamestate.into();
 
@@ -55,7 +55,7 @@ fn make_uri_array(
 
 /// Add the attributes to the token URI
 fn make_attributes(
-    ref uri: Array<felt252>, alive: u32, token_id: u256, copies: u256, timestamp: u64
+    ref uri: Array<felt252>, alive: u32, token_id: u256, copies: felt252, timestamp: u64
 ) {
     uri.append('"attributes": [');
     /// Game Mode 
@@ -63,16 +63,17 @@ fn make_attributes(
     uri.append('"value":"Infinite"},');
     /// Timestamp 
     uri.append('{"trait_type":"Timestamp",');
-    uri.append('"value":"');
+    uri.append('"value":');
     uri.append(timestamp.to_ascii());
     /// Cell Count
-    uri.append('"},{"trait_type":');
+    uri.append('},{"trait_type":');
     uri.append('"Cell%20Count",');
-    uri.append('"value":"');
+    uri.append('"value":');
     uri.append(alive.to_ascii());
     /// Copies
-    uri.append('"},{"trait_type":"Copies",');
-    uri.append('"value":"');
+    uri.append('},{"trait_type":"Copies",');
+    uri.append('"value":');
+    let copies: u256 = copies.into();
     if copies.high == 0 {
         uri.append(copies.low.to_ascii());
     } else {
@@ -85,8 +86,8 @@ fn make_attributes(
         };
     }
     /// Generation
-    uri.append('"},{"trait_type":"Generation",');
-    uri.append('"value":"');
+    uri.append('},{"trait_type":"Generation",');
+    uri.append('"value":');
     if token_id.high == 0 {
         uri.append(token_id.low.to_ascii());
     } else {
@@ -98,6 +99,6 @@ fn make_attributes(
             }
         };
     }
-    uri.append('"}]');
+    uri.append('}]');
 }
 

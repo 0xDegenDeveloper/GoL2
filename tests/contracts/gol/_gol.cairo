@@ -124,61 +124,17 @@ fn test_evolve() {
     let mut spy = spy_events(SpyOn::One(gol.contract_address));
     let creator = contract_address_const::<'creator'>();
     let acorn_evolved = 0x100030006e0000000000000000000000000000;
-    start_prank(CheatTarget::All(()), creator);
-
-    let bal0 = token.balance_of(creator);
-    let sup0 = token.total_supply();
-
-    gol.evolve(INFINITE_GAME_GENESIS);
-
-    let bal1 = token.balance_of(creator);
-    let sup1 = token.total_supply();
-
-    assert(bal1 - bal0 == 1, 'Invalid user balance change');
-    assert(sup1 - sup0 == 1, 'Invalid contract balance change');
-
-    assert(gol.view_game(INFINITE_GAME_GENESIS, 1) == INFINITE_GAME_GENESIS, 'Invalid game_state');
-    assert(gol.view_game(INFINITE_GAME_GENESIS, 2) == acorn_evolved, 'Invalid game_state');
-    assert(gol.get_current_generation(INFINITE_GAME_GENESIS) == 2, 'Invalid generation');
-
-    spy
-        .assert_emitted(
-            @array![
-                (
-                    gol.contract_address,
-                    GoL2::Event::GameEvolved(
-                        GoL2::GameEvolved {
-                            user_id: creator,
-                            game_id: INFINITE_GAME_GENESIS,
-                            generation: 2,
-                            state: acorn_evolved,
-                        }
-                    )
-                )
-            ]
-        );
-
-    stop_prank(CheatTarget::All(()));
-}
-
-#[test]
-fn test_evolve_with_storage() {
-    let gol = deploy_contract('GoL2');
-    let token = ERC20ABIDispatcher { contract_address: gol.contract_address };
-    let mut spy = spy_events(SpyOn::One(gol.contract_address));
-    let creator = contract_address_const::<'creator'>();
-    let acorn_evolved = 0x100030006e0000000000000000000000000000;
 
     let bal0 = token.balance_of(creator);
     let sup0 = token.total_supply();
 
     start_prank(CheatTarget::All(()), creator);
     start_warp(CheatTarget::All(()), 222);
-    gol.evolve_with_storage(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
     // testing that a snapshot is the initial evolution, and does not matter if cells are brought to life during this generation
     // todo: if reviving cells count as a snapshot then adjust
     gol.give_life_to_cell(0);
-    gol.evolve_with_storage(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
     stop_prank(CheatTarget::All(()));
     stop_warp(CheatTarget::All(()));
 

@@ -60,12 +60,14 @@ fn make_svg_array(cell_array: Array<felt252>) -> (Array<felt252>, u32) {
     /// Alive cells
     let stop = cell_array.len();
     let mut i = 0;
+    let mut alive = 0;
     loop {
         if i == stop {
             break;
         }
         let cell_idx = i;
         if *cell_array.at(cell_idx) == 1 {
+            alive += 1;
             let (row, col) = (cell_idx / (DIM), cell_idx % (DIM));
             add_rect(ref svg_array, 60, 60, col.into() * 60, row.into() * 60);
         }
@@ -83,7 +85,7 @@ fn make_svg_array(cell_array: Array<felt252>) -> (Array<felt252>, u32) {
     svg_array.append('5%2522/%253E'); ///5"/>
     svg_array.append('%253C/g%253E%253C/svg%253E'); ///</g></svg>
 
-    (svg_array, i)
+    (svg_array, alive)
 }
 
 /// Add a line shape to the SVG array
