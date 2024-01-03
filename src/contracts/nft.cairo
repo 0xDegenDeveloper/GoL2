@@ -46,10 +46,7 @@ trait IERC721Metadata<TContractState> {
 
 #[starknet::contract]
 mod GoL2NFT {
-    use starknet::{
-        get_caller_address, contract_address_const, ContractAddress, ClassHash,
-        replace_class_syscall, contract_address_try_from_felt252
-    };
+    use starknet::{get_caller_address, get_contract_address, ContractAddress, ClassHash};
     use openzeppelin::{
         access::ownable::OwnableComponent, introspection::src5::SRC5Component,
         upgrades::{UpgradeableComponent, interface::IUpgradeable}, token::erc721::{ERC721Component},
@@ -57,12 +54,9 @@ mod GoL2NFT {
     };
     use gol2::{
         utils::{
-            life_rules::evaluate_rounds, packing::{pack_game, unpack_game, revive_cell},
-            uri::make_uri_array,
-            constants::{
-                INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT
-            },
-            whitelist_pedersen::verify_pedersen_merkle, whitelist_poseidon::verify_poseidon_merkle
+            life_rules::evaluate_rounds, packing::{unpack_game}, uri::make_uri_array,
+            constants::{INFINITE_GAME_GENESIS}, whitelist_pedersen::verify_pedersen_merkle,
+            whitelist_poseidon::verify_poseidon_merkle
         },
         contracts::gol::{GoL2, IGoL2Dispatcher, IGoL2DispatcherTrait,}
     };
@@ -72,6 +66,7 @@ mod GoL2NFT {
 
     use debug::PrintTrait;
 
+    /// Components
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
@@ -164,7 +159,7 @@ mod GoL2NFT {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
-            IGoL2NFTDispatcher { contract_address: starknet::get_contract_address() }.initializer();
+            IGoL2NFTDispatcher { contract_address: get_contract_address() }.initializer();
         }
     }
 
@@ -310,13 +305,13 @@ mod GoL2NFT {
             self.handle_snapshot(generation, get_caller_address(), state, timestamp);
         }
 
-        /// Withdraw erc20 tokens from contract to `to`.
+        /// Withdraw ERC20 tokens from contract to `to`.
         fn withdraw(
             ref self: ContractState, token_addr: ContractAddress, amount: u256, to: ContractAddress
         ) {
             self.ownable.assert_only_owner();
             let token = ERC20ABIDispatcher { contract_address: token_addr };
-            let success = token.transfer_from(starknet::get_contract_address(), to, amount);
+            let success = token.transfer_from(get_contract_address(), to, amount);
             assert(success, 'NFT: withdraw failed');
         }
     }
@@ -324,11 +319,14 @@ mod GoL2NFT {
     /// Internal Functions
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        /// Fetch a generation snapshot pre & post migration
+        /// Fetch a generation snapshot pre or post migration.
+        /// @dev Pre migration snapshots were not saved in the GoL2 contract,
+        /// They are instead saved in the NFT contract upon mint.
+        /// @dev Post migration snapshots are saved in the GoL2 contract upon evolving.
         fn get_generation_snapshot(self: @ContractState, generation: felt252) -> super::Snapshot {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
-            let generations_in_gol: u256 = gol.pre_migration_generations().into();
-            if generation.into() > generations_in_gol {
+            let generation_marker: u256 = gol.migration_generation_marker().into();
+            if generation.into() > generation_marker {
                 gol.view_snapshot(generation)
             } else {
                 self.snapshots.read(generation)
@@ -336,18 +334,18 @@ mod GoL2NFT {
         }
 
 
-        /// Charge user to mint
+        /// Charge user for mint.
         fn charge_user(ref self: ContractState) {
-            let payment_token = ERC20ABIDispatcher {
-                contract_address: self.mint_token_addr.read()
-            };
-            let success = payment_token
-                .transfer_from(
-                    get_caller_address(), starknet::get_contract_address(), self.mint_price.read()
-                );
-            assert(success, 'NFT: payment failed');
+            assert(
+                ERC20ABIDispatcher { contract_address: self.mint_token_addr.read() }
+                    .transfer_from(
+                        get_caller_address(), get_contract_address(), self.mint_price.read()
+                    ),
+                'GoL2NFT: Payment failed'
+            );
         }
 
+        /// Increment the number of times generation's gamestate is minted.
         fn increment_copies(ref self: ContractState, generation: felt252) {
             /// Increment game_state duplicates
             let game_state = IGoL2Dispatcher { contract_address: self.gol2_addr.read() }
@@ -367,9 +365,9 @@ mod GoL2NFT {
 
         /// Returns the number of generations in the infinite game at the time of migration.
         /// @dev Marker for when generation snapshots started being saved in contract. 
-        fn get_pre_migration_generations(self: @ContractState) -> u256 {
+        fn get_migration_generation_marker(self: @ContractState) -> u256 {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
-            gol.pre_migration_generations().into()
+            gol.migration_generation_marker().into()
         }
 
         /// Checks if a generation is valid in the GoL2 contract post-migration.
@@ -383,7 +381,7 @@ mod GoL2NFT {
                 .get_current_generation(INFINITE_GAME_GENESIS)
                 .into();
             assert(
-                (self.get_pre_migration_generations() < generation_int)
+                (self.get_migration_generation_marker() < generation_int)
                     && (generation_int <= current_generation_int),
                 'NFT: invalid generation'
             );
@@ -400,7 +398,7 @@ mod GoL2NFT {
                 .get_current_generation(INFINITE_GAME_GENESIS)
                 .into();
             assert(
-                (0 < generation_int) && (generation_int <= self.get_pre_migration_generations()),
+                (0 < generation_int) && (generation_int <= self.get_migration_generation_marker()),
                 'NFT: invalid generation'
             );
         }
