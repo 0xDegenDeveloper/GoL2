@@ -80,12 +80,13 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation
         current_generation: LegacyMap<felt252, felt252>,
-        /// Number of generations in the infinite game at before migration to Cario 1
-        migration_generation_marker: felt252,
         /// Has contract been migrated to cairo1
         is_migrated: bool,
         /// Mapping for generations -> Snapshots
         snapshots: LegacyMap<felt252, Snapshot>,
+        /// Number of generations in the infinite game at the time of
+        /// migration from Cairo 0 to Cario 1
+        migration_generation_marker: felt252,
         /// Component Storage
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
