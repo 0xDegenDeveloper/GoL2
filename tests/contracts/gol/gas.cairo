@@ -117,40 +117,6 @@ fn evolve() {
 #[test]
 #[fork("MAINNET")]
 #[ignore]
-// todo: get gas of syscalls somehow ? 
-fn evolve_with_storage() {
-    let user = contract_address_const::<'user'>();
-    let NewGol = upgrade(get_old_gol());
-
-    /// Get gas cost for classic evolve
-    start_prank(CheatTarget::All(()), user);
-    let mut old_gas = testing::get_available_gas();
-    gas::withdraw_gas().unwrap();
-    NewGol.evolve(INFINITE_GAME_GENESIS);
-    old_gas -= testing::get_available_gas();
-
-    /// Get gas cost for storage evolve
-    let mut new_gas = testing::get_available_gas();
-    NewGol.evolve_with_storage(INFINITE_GAME_GENESIS); // complete first write (cheaper)
-    gas::withdraw_gas().unwrap();
-    NewGol.evolve_with_storage(INFINITE_GAME_GENESIS);
-    new_gas -= testing::get_available_gas();
-
-    stop_prank(CheatTarget::All(()));
-
-    let mut gases = array!['evolve 2', 'no store', old_gas, 'w/stor', new_gas];
-
-    loop {
-        match gases.pop_front() {
-            Option::Some(gas) => { gas.print(); },
-            Option::None => { break; }
-        }
-    }
-}
-
-#[test]
-#[fork("MAINNET")]
-#[ignore]
 fn create() {
     let user = contract_address_const::<'user'>();
     let OldGol = get_old_gol();
