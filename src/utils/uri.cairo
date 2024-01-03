@@ -10,6 +10,7 @@ fn make_uri_array(
     token_id: u256, gamestate: felt252, copies: u256, timestamp: u64
 ) -> Array<felt252> {
     let gamestate_int: u256 = gamestate.into();
+    let cell_array = unpack_game(gamestate);
 
     /// Url prefix
     let mut uri: Array<felt252> = array!['data:application/json,{'];
@@ -35,7 +36,7 @@ fn make_uri_array(
     }
     /// Image
     uri.append('","image":"');
-    let mut image_path = make_svg_array(gamestate);
+    let (mut image_path, alive_count) = make_svg_array(cell_array);
     loop {
         match image_path.pop_front() {
             Option::Some(el) => { uri.append(el); },
@@ -47,7 +48,7 @@ fn make_uri_array(
     uri.append('"https://gol2.io",'); // todo: specific url for token ? 
     /// Attributes
     uri.append('"attributes":');
-    let mut attributes = make_attributes(gamestate, token_id, copies, timestamp);
+    let mut attributes = make_attributes(alive_count, token_id, copies, timestamp);
     loop {
         match attributes.pop_front() {
             Option::Some(el) => { uri.append(el); },
@@ -58,9 +59,7 @@ fn make_uri_array(
     uri
 }
 
-fn make_attributes(
-    gamestate: felt252, token_id: u256, copies: u256, timestamp: u64
-) -> Array<felt252> {
+fn make_attributes(alive: u32, token_id: u256, copies: u256, timestamp: u64) -> Array<felt252> {
     let mut attributes: Array<felt252> = array!['['];
     /// Game Mode 
     attributes.append('{"trait_type":"Game%20Mode",');
@@ -68,23 +67,11 @@ fn make_attributes(
     /// Timestamp 
     attributes.append('{"trait_type":"Timestamp",');
     attributes.append('"value":"');
-    attributes.append(timestamp.to_ascii()); // check 
-    // attributes.append(timestamp.to_ascii()); 
+    attributes.append(timestamp.to_ascii());
     /// Cell Count
-    let mut cell_array = unpack_game(gamestate);
-    let mut alive: usize = 0;
-    loop {
-        match cell_array.pop_front() {
-            Option::Some(el) => { if el == 1 {
-                alive += 1;
-            } },
-            Option::None => { break; }
-        }
-    };
     attributes.append('"},{"trait_type":');
     attributes.append('"Cell%20Count",');
     attributes.append('"value":"');
-    // attributes.append(alive.to_ascii()); // check
     attributes.append(alive.to_ascii());
     /// Copies
     attributes.append('"},{"trait_type":"Copies",');
