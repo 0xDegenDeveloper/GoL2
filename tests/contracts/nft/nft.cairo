@@ -31,76 +31,6 @@ use alexandria_math::pow;
 use debug::PrintTrait;
 use super::super::setup::{MERKLE_ROOT, deploy_mocks, mock_whitelist_setup};
 
-// const MERKLE_ROOT: felt252 = 0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7;
-
-fn deploy_contract() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
-    let gol_contract = declare('GoL2');
-    let nft_contract = declare('GoL2NFT');
-
-    let gol_address = gol_contract.deploy(@array!['admin']).unwrap();
-    let nft_address = nft_contract
-        .deploy(
-            @array![
-                'admin', // owner
-                'Game of Life NFT', // name
-                'GoL2NFT', // symbol
-                gol_address.into(), // gol addr
-                gol_address.into(), // mint token address
-                1, //price.low
-                0, //price.high
-                MERKLE_ROOT, // poseidon root
-                MERKLE_ROOT // pedersen root
-            ]
-        )
-        .unwrap();
-    (
-        IGoL2Dispatcher { contract_address: gol_address },
-        IGoL2NFTDispatcher { contract_address: nft_address }
-    )
-}
-
-/// Simulate users evolving game pre-migration to match example whitelist
-fn simulate_migration(
-    gol: IGoL2Dispatcher
-) -> (starknet::ContractAddress, starknet::ContractAddress) {
-    let user1 = contract_address_const::<
-        0x00a138A07fde4cD66998e544665dd322E14AAC17279c6477E63f394a07476001
-    >();
-    let user2 = contract_address_const::<
-        0x00Ab6e726136F0A1AC1d526c7725D845aFe62b67Cf42dCB49B7B9468bf04E6A3
-    >();
-    let admin = contract_address_const::<0x0>();
-
-    start_prank(CheatTarget::All(()), user1);
-    start_warp(CheatTarget::All(()), 222);
-    gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
-
-    start_warp(CheatTarget::All(()), 333);
-    gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
-    stop_prank(CheatTarget::All(()));
-
-    start_prank(CheatTarget::All(()), user2);
-    start_warp(CheatTarget::All(()), 444);
-    gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
-
-    start_warp(CheatTarget::All(()), 555);
-    gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
-    stop_prank(CheatTarget::All(()));
-
-    /// simulate migration 
-    start_prank(CheatTarget::All(()), admin);
-    start_warp(CheatTarget::All(()), 666);
-    gol.migrate(get_class_hash(gol.contract_address)); //pre_migration_generations
-    stop_warp(CheatTarget::All(()));
-    stop_prank(CheatTarget::All(()));
-
-    (user1, user2)
-}
-
 /// Constructor
 #[test]
 fn test_deploy() {
@@ -125,7 +55,7 @@ fn test_deploy() {
 /// Owner functionns
 #[test]
 fn test_set_mint_token_and_price_and_merkle_root_owner() {
-    let (_, nft) = deploy_contract();
+    let (_, nft) = deploy_mocks();
     let admin = contract_address_const::<'admin'>();
 
     let new_root = 'new root';
@@ -196,7 +126,7 @@ fn test_withdraw_owner() {
 #[test]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_set_merkle_root_non_owner() {
-    let (_, nft) = deploy_contract();
+    let (_, nft) = deploy_mocks();
     let new_root = 'new root';
     nft.set_merkle_root(new_root);
 }
@@ -204,7 +134,7 @@ fn test_set_merkle_root_non_owner() {
 #[test]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_set_mint_price_non_owner() {
-    let (_, nft) = deploy_contract();
+    let (_, nft) = deploy_mocks();
     let new_price = 222_u256;
     nft.set_mint_price(new_price);
 }
@@ -212,7 +142,7 @@ fn test_set_mint_price_non_owner() {
 #[test]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_set_mint_token_non_owner() {
-    let (_, nft) = deploy_contract();
+    let (_, nft) = deploy_mocks();
     let new_addr = starknet::contract_address_const::<'new_addr'>();
     nft.set_mint_token_address(new_addr);
 }

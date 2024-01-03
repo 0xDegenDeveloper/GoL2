@@ -1,24 +1,24 @@
 mod utils {
-    mod _life_rules;
-    mod _packing;
+    mod life_rules;
+    mod packing;
 }
 
 mod contracts {
     mod setup;
     mod gol {
-        mod _gol;
+        mod gol;
         mod gol_internal;
         mod gol_ownable;
         mod gol_upgradeable;
-        mod gas;
+        mod gol_gas;
     }
 
     mod nft {
-        mod _nft;
+        mod nft;
         mod nft_upgradeable;
         mod nft_ownable;
         mod uri_svg;
-        mod gas;
+        mod nft_gas;
     }
 }
 
