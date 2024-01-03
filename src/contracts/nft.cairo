@@ -181,11 +181,14 @@ mod GoL2NFT {
         fn token_uri(self: @ContractState, token_id: u256) -> Array<felt252> {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
             let current_generation_int = gol.get_current_generation(INFINITE_GAME_GENESIS).into();
-            assert(0 < token_id && token_id <= current_generation_int, 'NFT: invalid token id');
+            assert(0 < token_id && token_id <= current_generation_int, 'GoL2NFT: invalid token id');
+
             let game_state = gol.view_game(INFINITE_GAME_GENESIS, token_id.try_into().unwrap());
+            let cell_array = unpack_game(game_state);
             let copies = self.game_state_copies.read(game_state);
             let timestamp = self.get_generation_snapshot(token_id.try_into().unwrap()).timestamp;
-            let mut uri_path = make_uri_array(token_id, game_state, copies, timestamp);
+
+            let mut uri_path = make_uri_array(token_id, game_state, cell_array, copies, timestamp);
 
             let mut token_uri: Array<felt252> = array![];
             loop {

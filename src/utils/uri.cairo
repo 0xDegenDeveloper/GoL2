@@ -7,10 +7,9 @@ use debug::PrintTrait;
 
 /// Generates a json url for a token
 fn make_uri_array(
-    token_id: u256, gamestate: felt252, copies: u256, timestamp: u64
+    token_id: u256, gamestate: felt252, cell_array: Array<felt252>, copies: u256, timestamp: u64
 ) -> Array<felt252> {
     let gamestate_int: u256 = gamestate.into();
-    let cell_array = unpack_game(gamestate);
 
     /// Url prefix
     let mut uri: Array<felt252> = array!['data:application/json,{'];

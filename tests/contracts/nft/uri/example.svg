@@ -32,13 +32,14 @@
     <line x1="840" y1="0" x2="840" y2="900"/>
   </g>
   <g fill="#dff17b" stroke="#dff17b" stroke-width="0.5">
-    <rect width="60" height="60" transform="translate(540 360)"/>
-    <rect width="60" height="60" transform="translate(660 420)"/>
-    <rect width="60" height="60" transform="translate(480 480)"/>
-    <rect width="60" height="60" transform="translate(540 480)"/>
+    <rect width="60" height="60" transform="translate(480 420)"/>
+    <rect width="60" height="60" transform="translate(540 420)"/>
+    <rect width="60" height="60" transform="translate(600 420)"/>
+    <rect width="60" height="60" transform="translate(720 420)"/>
+    <rect width="60" height="60" transform="translate(780 420)"/>
     <rect width="60" height="60" transform="translate(720 480)"/>
     <rect width="60" height="60" transform="translate(780 480)"/>
-    <rect width="60" height="60" transform="translate(840 480)"/>
+    <rect width="60" height="60" transform="translate(780 540)"/>
   </g>
   <rect width="900" height="900" fill="none" stroke="#0a0c10" stroke-width="5"/>
 </g>
