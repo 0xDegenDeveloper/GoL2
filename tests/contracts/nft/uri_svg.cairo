@@ -71,7 +71,7 @@ fn test_uri_svg() {
     stop_prank(CheatTarget::All(()));
     start_prank(CheatTarget::One(gol.contract_address), user);
     start_warp(CheatTarget::One(gol.contract_address), 222);
-    gol.evolve_with_storage(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
     /// approve nft to spend tokens 
     gol_erc20.approve(nft.contract_address, 1);
     stop_prank(CheatTarget::One(gol.contract_address));

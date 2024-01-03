@@ -1,5 +1,5 @@
 use alexandria_merkle_tree::merkle_tree::{
-    Hasher, MerkleTree, pedersen::PedersenHasherImpl, MerkleTreeTrait
+    Hasher, MerkleTree, pedersen::{PedersenHasherImpl}, MerkleTreeTrait, MerkleTreeImpl
 };
 
 /// Verify a merkle proof for a pedersen merkle tree.
