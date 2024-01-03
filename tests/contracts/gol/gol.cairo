@@ -125,7 +125,6 @@ fn test_evolve() {
     start_warp(CheatTarget::All(()), 222);
     gol.evolve(INFINITE_GAME_GENESIS);
     // testing that a snapshot is the initial evolution, and does not matter if cells are brought to life during this generation
-    // todo: if reviving cells count as a snapshot then adjust
     gol.give_life_to_cell(0);
     gol.evolve(INFINITE_GAME_GENESIS);
     stop_prank(CheatTarget::All(()));
