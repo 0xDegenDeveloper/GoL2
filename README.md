@@ -387,7 +387,7 @@ It takes the `felt252` packed game, converts it to its binary representation, th
 
 ### Requirements <a name="requirements"></a>
 
-- [scarb (>= 2.4.0)](https://book.cairo-lang.org/ch01-01-installation.html)
+- [scarb (>= 2.3.1)](https://book.cairo-lang.org/ch01-01-installation.html)
 - [starknet-foundry (>= 0.12.0)](https://foundry-rs.github.io/starknet-foundry/getting-started/installation.html)
 
 To build the contracts run:
