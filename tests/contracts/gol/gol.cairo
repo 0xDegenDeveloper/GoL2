@@ -51,6 +51,8 @@ fn test_get_current_generation() {
     assert(gen == 1, 'Invalid game_state');
 }
 
+/// snapshot tests are in `forking.cairo`
+/// they require a proper migration to test
 
 #[test]
 fn test_create() {

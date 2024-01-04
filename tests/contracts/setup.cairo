@@ -67,34 +67,41 @@ fn mock_whitelist_setup(
     let user2 = contract_address_const::<
         0x00Ab6e726136F0A1AC1d526c7725D845aFe62b67Cf42dCB49B7B9468bf04E6A3
     >();
-    let admin = contract_address_const::<0x0>();
-
-    start_prank(CheatTarget::All(()), user1);
-    start_warp(CheatTarget::All(()), 222);
+    start_prank(CheatTarget::One(gol.contract_address), user1);
+    start_warp(CheatTarget::One(gol.contract_address), 222);
     gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
+    stop_warp(CheatTarget::One(gol.contract_address));
 
-    start_warp(CheatTarget::All(()), 333);
+    start_warp(CheatTarget::One(gol.contract_address), 333);
     gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
-    stop_prank(CheatTarget::All(()));
+    stop_warp(CheatTarget::One(gol.contract_address));
+    stop_prank(CheatTarget::One(gol.contract_address));
 
-    start_prank(CheatTarget::All(()), user2);
-    start_warp(CheatTarget::All(()), 444);
+    start_prank(CheatTarget::One(gol.contract_address), user2);
+    start_warp(CheatTarget::One(gol.contract_address), 444);
     gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
+    stop_warp(CheatTarget::One(gol.contract_address));
 
-    start_warp(CheatTarget::All(()), 555);
+    start_warp(CheatTarget::One(gol.contract_address), 555);
     gol.evolve(INFINITE_GAME_GENESIS);
-    stop_warp(CheatTarget::All(()));
-    stop_prank(CheatTarget::All(()));
+    stop_warp(CheatTarget::One(gol.contract_address));
+    stop_prank(CheatTarget::One(gol.contract_address));
 
-    /// simulate migration 
-    start_prank(CheatTarget::All(()), admin);
-    start_warp(CheatTarget::All(()), 666);
+    // Migration uses the storage var `Proxy_admin` from the cairo0 version of the 
+    // contract. Since we are using a fresh instance of just cairo1 this var is not set
+    // so we will need to write it manually
+    let admin_empty = contract_address_const::<0x0>();
+    start_prank(CheatTarget::One(gol.contract_address), admin_empty);
+    start_warp(CheatTarget::One(gol.contract_address), 666);
     gol.migrate(get_class_hash(gol.contract_address)); //pre_migration_generations
-    stop_warp(CheatTarget::All(()));
-    stop_prank(CheatTarget::All(()));
+    stop_prank(CheatTarget::One(gol.contract_address));
+    // set admin back to 'admin'
+    // let admin = contract_address_const::<'admin'>();
+    // let ownable = IOwnableDispatcher { contract_address: gol.contract_address };
+    // start_prank(CheatTarget::One(gol.contract_address), admin_empty);
+    // ownable.transfer_ownership(admin);
+    // stop_prank(CheatTarget::One(gol.contract_address));
+    // stop_warp(CheatTarget::One(gol.contract_address));
 
     (user1, user2)
 }

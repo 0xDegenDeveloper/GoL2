@@ -7,15 +7,21 @@ trait IGoL2<TContractState> {
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
     fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
     fn migration_generation_marker(self: @TContractState) -> felt252;
+    fn is_snapshotter(self: @TContractState, user: ContractAddress) -> bool;
     /// Write
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
     fn initializer(ref self: TContractState);
-
-    fn rm_me1(ref self: TContractState);
-    fn rm_me2(ref self: TContractState);
+    fn set_snapshotter(ref self: TContractState, user: ContractAddress, is_snapshotter: bool);
+    fn add_snapshot(
+        ref self: TContractState,
+        generation: felt252,
+        user_id: ContractAddress,
+        game_state: felt252,
+        timestamp: u64
+    );
 }
 
 
@@ -52,6 +58,7 @@ mod GoL2 {
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
 
+
     /// Ownable
     #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
@@ -67,12 +74,6 @@ mod GoL2 {
     impl SafeAllowanceImpl = ERC20Component::SafeAllowanceImpl<ContractState>;
     impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
-    #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress) {
-        self.erc20.initializer('Game of Life Token', 'GOL');
-        self.ownable.initializer(owner);
-        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
-    }
 
     #[storage]
     struct Storage {
@@ -84,6 +85,8 @@ mod GoL2 {
         is_migrated: bool,
         /// Mapping for generations -> Snapshots
         snapshots: LegacyMap<felt252, Snapshot>,
+        /// Mapping for user -> snapshotter status
+        is_snapshotter: LegacyMap<ContractAddress, bool>,
         /// Number of generations in the infinite game at the time of
         /// migration from Cairo 0 to Cario 1
         migration_generation_marker: felt252,
@@ -96,6 +99,14 @@ mod GoL2 {
         erc20: ERC20Component::Storage,
         /// Slot of old proxy admin address, used for migration to ownable/upgradable components
         Proxy_admin: felt252,
+    }
+
+    #[constructor]
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.erc20.initializer('Game of Life Token', 'GOL');
+        self.ownable.initializer(owner);
+        self.create_new_game(INFINITE_GAME_GENESIS, get_caller_address());
+    // self.accesscontrol._grant_role(MINTER_ROLE, minter);
     }
 
     #[event]
@@ -175,72 +186,6 @@ mod GoL2 {
 
     #[external(v0)]
     impl GoL2Impl of super::IGoL2<ContractState> {
-        fn rm_me1(ref self: ContractState) {
-            let proof: Array<felt252> = array![
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901, // 20 elements ()
-            ];
-            let timestamp = starknet::get_block_timestamp();
-            let leaf = pedersen(
-                pedersen(pedersen(pedersen(0, 0x123), get_caller_address().into()), 'gamestate'),
-                timestamp.into()
-            );
-            let root = 0x1234567890123456789012345678901;
-
-            is_valid_pedersen_merkle(root, leaf, proof);
-        }
-
-        fn rm_me2(ref self: ContractState) {
-            let proof: Array<felt252> = array![
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901,
-                0x1234567890123456789012345678901, // 20 elements ()
-            ];
-            let timestamp = starknet::get_block_timestamp();
-            let leaf: felt252 = poseidon_hash_span(
-                array!['generation', get_caller_address().into(), 'gamestate', timestamp.into()]
-                    .span()
-            );
-            let root = 0x1234567890123456789012345678901;
-
-            is_valid_poseidon_merkle(root, leaf, proof);
-        }
-
         /// Empty function, used for interface definition if contract is upgraded in the future.
         fn initializer(ref self: ContractState) {}
 
@@ -283,7 +228,30 @@ mod GoL2 {
             self.snapshots.read(generation)
         }
 
+        /// Gets if a user is a snapshotter
+        fn is_snapshotter(self: @ContractState, user: ContractAddress) -> bool {
+            self.is_snapshotter.read(user)
+        }
+
         /// Write 
+
+        fn add_snapshot(
+            ref self: ContractState,
+            generation: felt252,
+            user_id: ContractAddress,
+            game_state: felt252,
+            timestamp: u64
+        ) {
+            assert(self.is_snapshotter.read(get_caller_address()), 'GoL2: caller non snapshotter');
+            let u_generation: u256 = generation.into();
+            assert(
+                u_generation <= self.migration_generation_marker.read().into() && u_generation > 0,
+                'GoL2: not from pre-migration'
+            );
+            self.save_snapshot(generation, Snapshot { user_id, game_state, timestamp });
+        }
+
+        /// Create a new creator mode game.
         fn create(ref self: ContractState, game_state: felt252) {
             let caller = self.ensure_user();
             self.assert_valid_new_game(game_state);
@@ -291,6 +259,7 @@ mod GoL2 {
             self.create_new_game(game_state, caller);
         }
 
+        /// Evolve a game by 1 generation.
         fn evolve(ref self: ContractState, game_id: felt252) {
             let caller = self.ensure_user();
             let (generation, game) = self.evolve_game(game_id, caller);
@@ -299,17 +268,32 @@ mod GoL2 {
             self.reward_user(caller);
             /// Save a snapshot of the generation
             self
-                .save_generation_snapshot(
-                    generation, caller, game, starknet::get_block_timestamp()
+                .save_snapshot(
+                    generation,
+                    Snapshot {
+                        user_id: caller,
+                        game_state: game,
+                        timestamp: starknet::get_block_timestamp()
+                    }
                 );
         }
 
+        /// Revive a cell in the infinite game.
+        /// @dev This function fails if the cell is already alive.
         fn give_life_to_cell(ref self: ContractState, cell_index: usize) {
             let caller = self.ensure_user();
             let (generation, current_game_state) = self.get_last_state();
             self.assert_valid_cell_index(cell_index);
             self.pay(caller, GIVE_LIFE_CREDIT_REQUIREMENT);
             self.activate_cell(generation, caller, cell_index, current_game_state)
+        }
+
+        /// Set a user's snapshotter status 
+        /// @dev A snapshotter is a contract allowed to create snapshots of the infinite game.
+        /// @dev This allows pre-migration snapshots to be saved in the contract via 3rd party contracts.
+        fn set_snapshotter(ref self: ContractState, user: ContractAddress, is_snapshotter: bool) {
+            self.ownable.assert_only_owner();
+            self.is_snapshotter.write(user, is_snapshotter);
         }
     }
 
@@ -373,13 +357,6 @@ mod GoL2 {
             self.current_generation.write(game_id, generation);
         }
 
-        /// todo: 
-        /// - if first pre.m evolver vs first post.m evolver race), we need to check if the snapshot already exists before recording anything 
-        /// - if full race approach), no need to check anything, we are recording all 
-        /// - if full race, no checks needef for 
-        /// - if pre.m user wl_mints(), this needs to be called by NFT contract (todo: set up permissions for addrs to call this)
-        /// - if post.m user evolves(), this function needs to be called by the GoL2 contract,
-        /// todo: check understanding is correct
         /// Save a snapshot of a generation.
         /// A snapshot is a record of the game_state when a generation is evolved, e.g.
         ///     - Alice evolves the game to generation 10 with state: S_a.
@@ -387,15 +364,10 @@ mod GoL2 {
         ///     - Charlie evolves the game to generation 11 with state: S_c.
         ///     Snapshot 10 is recorded with state: S_a, Alice's address, and her timestamp,
         ///     Snapshot 11 is recorded with state: S_c, Charlie's address, and his timestamp.
-        ///     Bob does not own a snapshot because he did not 'evolve' the game to a state.
-        fn save_generation_snapshot(
-            ref self: ContractState,
-            generation: felt252,
-            user: ContractAddress,
-            game_state: felt252,
-            timestamp: u64
-        ) {
-            self.snapshots.write(generation, Snapshot { user_id: user, game_state, timestamp });
+        ///     Bob does not own a snapshot because he did not 'evolve' the game to any state.
+        fn save_snapshot(ref self: ContractState, generation: felt252, snapshot: Snapshot,) {
+            assert(self.snapshots.read(generation).timestamp == 0, 'Snapshot already exists');
+            self.snapshots.write(generation, snapshot);
         }
 
         fn assert_game_exists(self: @ContractState, game_id: felt252, generation: felt252) {
