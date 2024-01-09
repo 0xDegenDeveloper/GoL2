@@ -1,13 +1,14 @@
 {
   "name": "gol2",
   "version": "1.0.0",
-  "description": "## Table of contents",
+  "description": "GoL2 code base for the Cairo 1 migration",
   "main": "index.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test_uri": "python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py"
   },
   "repository": {
     "type": "git",
@@ -21,9 +22,8 @@
   },
   "homepage": "https://github.com/0xDegenDeveloper/gol2#readme",
   "dependencies": {
-    "@applied-crypto/merkletree": "^0.1.2",
+    "@noble/curves": "^1.3.0",
     "@scure/starknet": "^1.0.0",
-    "circomlibjs": "^0.1.7",
     "merkletreejs": "^0.3.11",
     "scure": "^1.6.0",
     "starknet": "^5.24.3",

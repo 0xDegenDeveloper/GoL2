@@ -1,10 +1,13 @@
-use starknet::{contract_address_const, ClassHash, call_contract_syscall};
+use starknet::{contract_address_const, ClassHash, call_contract_syscall, ContractAddress};
 use snforge_std::{
     declare, ContractClassTrait, start_prank, stop_prank, CheatTarget, spy_events, SpyOn, EventSpy,
     EventAssertions, get_class_hash, EventFetcher, event_name_hash, Event
 };
 use gol2::{
-    contracts::gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
+    contracts::{
+        gol::{IGoL2Dispatcher, IGoL2DispatcherTrait, GoL2},
+        nft::{IGoL2NFTDispatcher, IGoL2NFTDispatcherTrait,}
+    },
     utils::constants::{
         INFINITE_GAME_GENESIS, DIM, FIRST_ROW_INDEX, LAST_ROW_INDEX, LAST_ROW_CELL_INDEX,
         FIRST_COL_INDEX, LAST_COL_INDEX, LAST_COL_CELL_INDEX, CREATE_CREDIT_REQUIREMENT,
@@ -17,11 +20,15 @@ use openzeppelin::{
         UpgradeableComponent,
         interface::{IUpgradeable, IUpgradeableDispatcher, IUpgradeableDispatcherTrait},
     },
-    token::erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait},
+    token::{
+        erc20::{ERC20Component, ERC20ABIDispatcher, ERC20ABIDispatcherTrait},
+        erc721::{ERC721Component, interface::{IERC721, IERC721Dispatcher, IERC721DispatcherTrait}}
+    },
 };
-use debug::PrintTrait;
-use super::super::contracts::setup::{deploy_mocks, mock_whitelist_setup};
+use core::{poseidon::{poseidon_hash_span, PoseidonTrait}};
 
+use debug::PrintTrait;
+use super::super::contracts::setup::{deploy_mocks, mock_whitelist_setup, MERKLE_ROOT};
 
 #[starknet::interface]
 trait IOldGol<TContractState> {
@@ -57,6 +64,27 @@ fn get_admin_address() -> starknet::ContractAddress {
     contract_address_const::<0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973>()
 }
 
+fn deploy_nft(gol: IGoL2Dispatcher) -> IGoL2NFTDispatcher {
+    let nft = declare('GoL2NFT');
+    let nft_address = nft
+        .deploy(
+            @array![
+                get_admin_address().into(), // owner
+                'Game of Life NFT', // name
+                'GoL2NFT', // symbol
+                gol.contract_address.into(), // gol addr
+                gol.contract_address.into(), // mint token address
+                1, //price.low
+                0, //price.high
+                /// this hash is for a poseidon tree in ./whitelist/fork_whitelist.json
+                0x0595d834a768d680188fce9858f850eeaf8926f86b54238e30fecc53f6317962, // poseidon root
+            ]
+        )
+        .unwrap();
+
+    IGoL2NFTDispatcher { contract_address: nft_address }
+}
+
 // as admin
 fn do_migration() -> (IGoL2Dispatcher, starknet::ContractAddress, starknet::ClassHash) {
     do_migration_as(get_admin_address())
@@ -81,7 +109,6 @@ fn do_migration_as(
 }
 
 /// Tests
-
 #[test]
 #[fork("MAINNET")]
 fn test_migrate() {
@@ -255,9 +282,12 @@ fn test_post_migration_envoking() {
     assert(new_erc20.total_supply() == new_total_supply - 10, 'mintig/burning off');
 }
 
-/// Snapshot tests:
-/// need to be here because migration utilizes the `Proxy_admin` storage var slot.
-/// only exists in cairo0 version of the code.
+/// Snapshot & Whitelist tests:
+/// These tests need to use snapshotters which is only possible with fork tests.
+/// The migration utilizes the `Proxy_admin` storage var that only exists
+/// in the cairo0 instance of the contract.
+/// Doing this with mocks is not possible because the owner of the contract
+/// will be 0x0, and you cannot call .only_owner() using the 0x0 address.
 #[test]
 #[fork("MAINNET")]
 fn test_is_snapshotter() {
@@ -302,12 +332,21 @@ fn test_add_snapshot_with_permit() {
     // add snapshot
     let game_state = 'random';
     let timestamp = 123;
+    let marker = gol.migration_generation_marker();
     start_prank(CheatTarget::One(gol.contract_address), user);
-    gol
-        .add_snapshot(
-            gol.migration_generation_marker(), user, game_state, timestamp
-        ); // last one allowed to be added manually
-    gol.add_snapshot(gol.migration_generation_marker() - 1, user, game_state, timestamp);
+    assert(
+        gol.add_snapshot(marker, user, game_state, timestamp), 'Call fail'
+    ); // last one allowed to be added manually
+    assert(gol.add_snapshot(marker - 1, user, game_state, timestamp), 'Call fail');
+    let s = GoL2::Snapshot { user_id: user, game_state, timestamp };
+    let s1 = gol.view_snapshot(marker);
+    let s2 = gol.view_snapshot(marker - 1);
+    assert(s1.user_id == s.user_id, 'Snapshot not added');
+    assert(s1.game_state == s.game_state, 'Snapshot not added');
+    assert(s1.timestamp == s.timestamp, 'Snapshot not added');
+    assert(s2.user_id == s.user_id, 'Snapshot not added');
+    assert(s2.game_state == s.game_state, 'Snapshot not added');
+    assert(s2.timestamp == s.timestamp, 'Snapshot not added');
 }
 
 #[test]
@@ -327,7 +366,7 @@ fn test_add_snapshot_no_permit() {
 #[test]
 #[fork("MAINNET")]
 #[should_panic(expected: ('GoL2: not from pre-migration',))]
-fn test_add_snapshot_0_generation() {
+fn test_add_snapshot_for_0_generation() {
     let (gol, admin, _) = do_migration();
     let user = contract_address_const::<'user'>();
     // set permit
@@ -345,7 +384,7 @@ fn test_add_snapshot_0_generation() {
 #[test]
 #[fork("MAINNET")]
 #[should_panic(expected: ('GoL2: not from pre-migration',))]
-fn test_add_snapshot_non_pre_migration() {
+fn test_add_snapshot_for_non_pre_migration() {
     let (gol, admin, _) = do_migration();
     let user = contract_address_const::<'user'>();
     // set permit
@@ -360,3 +399,135 @@ fn test_add_snapshot_non_pre_migration() {
     stop_prank(CheatTarget::One(gol.contract_address));
 }
 
+/// Whitelist
+
+// todo: test snapshot added to gol
+#[test]
+#[fork("MAINNET")]
+fn test_whitelist_mint() {
+    let (gol, admin, _) = do_migration();
+    let nft = deploy_nft(gol);
+
+    let erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
+    let nft_nft = IERC721Dispatcher { contract_address: nft.contract_address };
+
+    /// spoof balance 
+    start_prank(CheatTarget::One(gol.contract_address), admin);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    /// Approve nft contract to spend users tokens
+    erc20.approve(nft.contract_address, 3);
+    let user_bal0 = erc20.balance_of(admin); // 3
+    /// Poseidon proofs for tokens 1, 2, 3
+    let p1 = array![
+        0x034a52adb2632dbf7214c10d9495fe423f6a43a8b72f2db428d769bbba8b428e,
+        0x01eb30fc6beea707d5fa1d9218d2096e65c5c35f73b7c170bb2eee7811fb5201,
+        0x01b1e46a9c846a98713182ed39bdb475512a756aee2a6382551686a11a192e27
+    ];
+    let p2 = array![
+        0x01e30c6b953ecedbd1f9c82e98f89a7f690c927368182e1d01d40c3491448a97,
+        0x01eb30fc6beea707d5fa1d9218d2096e65c5c35f73b7c170bb2eee7811fb5201,
+        0x01b1e46a9c846a98713182ed39bdb475512a756aee2a6382551686a11a192e27
+    ];
+    let p3 = array![
+        0x0,
+        0x01fb7169b936dd880cb7ebc50e932a495a60e0084cdab94a681040cb4006e1a0,
+        0x03266c210b30bff10f3415fecc52fc809b3858ba5100d00e58420ff6f52c15dd
+    ];
+    /// Set GoL2NFT as a snapshotter 
+    gol.set_snapshotter(nft.contract_address, true);
+    stop_prank(CheatTarget::One(gol.contract_address));
+    /// Whitelist mint
+    start_prank(CheatTarget::One(nft.contract_address), admin);
+    nft.whitelist_mint(1, 0x7300100008000000000000000000000000, 1663268697, p1);
+    nft.whitelist_mint(2, 0x100030006e0000000000000000000000000000, 1663315027, p2);
+    nft.whitelist_mint(3, 0x18004a00740008000000000000000000000000, 1663315027, p3);
+    stop_prank(CheatTarget::One(nft.contract_address));
+    assert(user_bal0 - erc20.balance_of(admin) == 3, 'NFT: mint price fail');
+    assert(nft_nft.owner_of(1) == admin, 'NFT: mint fail1');
+    assert(nft_nft.owner_of(2) == admin, 'NFT: mint fail2');
+    assert(nft_nft.owner_of(3) == admin, 'NFT: mint fail3');
+
+    let snapshot1 = gol.view_snapshot(1);
+    let snapshot2 = gol.view_snapshot(2);
+    let snapshot3 = gol.view_snapshot(3);
+
+    assert(snapshot1.user_id == admin, 'Snapshot not added');
+    assert(snapshot1.game_state == 0x7300100008000000000000000000000000, 'Snapshot not added');
+    assert(snapshot1.timestamp == 1663268697, 'Snapshot not added');
+    assert(snapshot2.user_id == admin, 'Snapshot not added');
+    assert(snapshot2.game_state == 0x100030006e0000000000000000000000000000, 'Snapshot not added');
+    assert(snapshot2.timestamp == 1663315027, 'Snapshot not added');
+    assert(snapshot3.user_id == admin, 'Snapshot not added');
+    assert(snapshot3.game_state == 0x18004a00740008000000000000000000000000, 'Snapshot not added');
+    assert(snapshot3.timestamp == 1663315027, 'Snapshot not added');
+}
+
+#[test]
+#[fork("MAINNET")]
+#[should_panic(expected: ('GoL2NFT: Invalid proof',))]
+fn test_whitelist_mint_false_proof() {
+    let (gol, admin, _) = do_migration();
+    let nft = deploy_nft(gol);
+
+    let erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
+    let nft_nft = IERC721Dispatcher { contract_address: nft.contract_address };
+
+    /// Spoof balance 
+    start_prank(CheatTarget::One(gol.contract_address), admin);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    /// Approve nft contract to spend users tokens
+    erc20.approve(nft.contract_address, 3);
+    let user_bal0 = erc20.balance_of(admin); // 3
+    /// Poseidon proofs for tokens 1, 2, 3
+    let p1 = array![
+        0x034a52adb2632dbf7214c10d9495fe423f6a43a8b72f2db428d769bbba8b428e,
+        0x01eb30fc6beea707d5fa1d9218d2096e65c5c35f73b7c170bb2eee7811fb5201,
+        0x01b1e46a9c846a98713182ed39bdb475512a756aee2a6382551686a11a192e27,
+        0xbeef
+    ];
+    /// Set GoL2NFT as a snapshotter 
+    gol.set_snapshotter(nft.contract_address, true);
+    stop_prank(CheatTarget::One(gol.contract_address));
+    /// Whitelist mint
+    start_prank(CheatTarget::One(nft.contract_address), admin);
+    nft.whitelist_mint(1, 0x7300100008000000000000000000000000, 1663268697, p1);
+    stop_prank(CheatTarget::One(nft.contract_address));
+}
+
+#[test]
+#[fork("MAINNET")]
+#[should_panic(expected: ('GoL2NFT: Invalid proof',))]
+fn test_whitelist_mint_false_caller() {
+    let (gol, admin, _) = do_migration();
+    let nft = deploy_nft(gol);
+    let not_admin = contract_address_const::<'not admin'>();
+
+    let erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
+    let nft_nft = IERC721Dispatcher { contract_address: nft.contract_address };
+
+    /// Spoof balance 
+    start_prank(CheatTarget::One(gol.contract_address), admin);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    /// Approve nft contract to spend users tokens
+    erc20.approve(nft.contract_address, 3);
+    let user_bal0 = erc20.balance_of(admin); // 3
+    /// Poseidon proofs for tokens 1, 2, 3
+    let p1 = array![
+        0x034a52adb2632dbf7214c10d9495fe423f6a43a8b72f2db428d769bbba8b428e,
+        0x01eb30fc6beea707d5fa1d9218d2096e65c5c35f73b7c170bb2eee7811fb5201,
+        0x01b1e46a9c846a98713182ed39bdb475512a756aee2a6382551686a11a192e27,
+    ];
+    /// Set GoL2NFT as a snapshotter 
+    gol.set_snapshotter(nft.contract_address, true);
+    stop_prank(CheatTarget::One(gol.contract_address));
+    /// Whitelist mint
+    start_prank(CheatTarget::One(nft.contract_address), not_admin);
+    nft.whitelist_mint(1, 0x7300100008000000000000000000000000, 1663268697, p1);
+    stop_prank(CheatTarget::One(nft.contract_address));
+}

@@ -1,6 +1,7 @@
 mod utils {
     mod life_rules;
     mod packing;
+    mod whitelist;
 }
 
 mod contracts {

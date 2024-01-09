@@ -29,8 +29,8 @@ use openzeppelin::{
 };
 use alexandria_math::pow;
 
-const MERKLE_ROOT: felt252 = 0x192391f83965506f49c94b50d05f9394f3613f5ae60a1e36ba3c80481ad57f7;
-
+/// Using mock whitelist defined in ./whitelist/mock.json
+const MERKLE_ROOT: felt252 = 0x0299104bb939fbd318debb85c03074380156ae454dc20d3fa76d167c2fd44968;
 fn deploy_mocks() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
     let gol_contract = declare('GoL2');
     let nft_contract = declare('GoL2NFT');
@@ -47,7 +47,6 @@ fn deploy_mocks() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
                 1, //price.low
                 0, //price.high
                 MERKLE_ROOT, // poseidon root
-                MERKLE_ROOT // pedersen root
             ]
         )
         .unwrap();
@@ -57,7 +56,7 @@ fn deploy_mocks() -> (IGoL2Dispatcher, IGoL2NFTDispatcher) {
     )
 }
 
-/// Simulate users evolving game pre-migration to match example whitelist
+/// Simulate users evolving the game pre-migration to match mock whitelist
 fn mock_whitelist_setup(
     gol: IGoL2Dispatcher
 ) -> (starknet::ContractAddress, starknet::ContractAddress) {
@@ -87,21 +86,12 @@ fn mock_whitelist_setup(
     stop_warp(CheatTarget::One(gol.contract_address));
     stop_prank(CheatTarget::One(gol.contract_address));
 
-    // Migration uses the storage var `Proxy_admin` from the cairo0 version of the 
-    // contract. Since we are using a fresh instance of just cairo1 this var is not set
-    // so we will need to write it manually
-    let admin_empty = contract_address_const::<0x0>();
-    start_prank(CheatTarget::One(gol.contract_address), admin_empty);
+    /// Migrate contract
+    let admin = contract_address_const::<0x0>();
+    start_prank(CheatTarget::One(gol.contract_address), admin);
     start_warp(CheatTarget::One(gol.contract_address), 666);
     gol.migrate(get_class_hash(gol.contract_address)); //pre_migration_generations
     stop_prank(CheatTarget::One(gol.contract_address));
-    // set admin back to 'admin'
-    // let admin = contract_address_const::<'admin'>();
-    // let ownable = IOwnableDispatcher { contract_address: gol.contract_address };
-    // start_prank(CheatTarget::One(gol.contract_address), admin_empty);
-    // ownable.transfer_ownership(admin);
-    // stop_prank(CheatTarget::One(gol.contract_address));
-    // stop_warp(CheatTarget::One(gol.contract_address));
 
     (user1, user2)
 }

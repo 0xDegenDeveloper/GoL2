@@ -18,7 +18,7 @@ except Exception as e:
 
 if expected_output == returned_output:
     print('Test passed!\n')
-    print("Copy this output and paste it into a browser to view the JSON:\n\n" + returned_output, '\n')
+    print("Copy this output and paste it into your browser to view the JSON:\n\n" + returned_output, '\n')
 else:
     print('Test failed! (Output does not match expected output)\n')
 

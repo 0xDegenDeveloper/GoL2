@@ -75,6 +75,30 @@ fn test_set_mint_token_and_price_and_merkle_root_owner() {
 }
 
 #[test]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_set_mint_token_non_owner() {
+    let (_, nft) = deploy_mocks();
+    let new_addr = starknet::contract_address_const::<'new_addr'>();
+    nft.set_mint_token_address(new_addr);
+}
+
+#[test]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_set_mint_price_non_owner() {
+    let (_, nft) = deploy_mocks();
+    let new_price = 222_u256;
+    nft.set_mint_price(new_price);
+}
+
+#[test]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_set_merkle_root_non_owner() {
+    let (_, nft) = deploy_mocks();
+    let new_root = 'new root';
+    nft.set_merkle_root(new_root);
+}
+
+#[test]
 fn test_withdraw_owner() {
     let (gol, nft) = deploy_mocks();
     let (user1, user2) = mock_whitelist_setup(gol);
@@ -124,30 +148,6 @@ fn test_withdraw_owner() {
 
 #[test]
 #[should_panic(expected: ('Caller is not the owner',))]
-fn test_set_merkle_root_non_owner() {
-    let (_, nft) = deploy_mocks();
-    let new_root = 'new root';
-    nft.set_merkle_root(new_root);
-}
-
-#[test]
-#[should_panic(expected: ('Caller is not the owner',))]
-fn test_set_mint_price_non_owner() {
-    let (_, nft) = deploy_mocks();
-    let new_price = 222_u256;
-    nft.set_mint_price(new_price);
-}
-
-#[test]
-#[should_panic(expected: ('Caller is not the owner',))]
-fn test_set_mint_token_non_owner() {
-    let (_, nft) = deploy_mocks();
-    let new_addr = starknet::contract_address_const::<'new_addr'>();
-    nft.set_mint_token_address(new_addr);
-}
-
-#[test]
-#[should_panic(expected: ('Caller is not the owner',))]
 fn test_withdraw_non_owner() {
     let (gol, nft) = deploy_mocks();
     let (user1, user2) = mock_whitelist_setup(gol);
@@ -172,6 +172,9 @@ fn test_withdraw_non_owner() {
 }
 
 /// External functions
+
+/// @dev These tests also cover mint_helper(), so 
+/// it is ommitted in the whitelist minting tests.
 #[test]
 fn test_mint_snapshot_owner() {
     let (gol, nft) = deploy_mocks();
@@ -215,7 +218,7 @@ fn test_mint_snapshot_owner() {
             break;
         }
         assert(nft_nft.owner_of((i).into()) == user1, 'NFT: mint fail');
-        let snapshot = nft.view_snapshot((i).into());
+        let snapshot = gol.view_snapshot((i).into());
         assert(snapshot.user_id == user1, 'NFT: snapshot user_id fail');
         assert(snapshot.timestamp == 222, 'NFT: snapshot timestamp fail');
         assert(
@@ -227,8 +230,6 @@ fn test_mint_snapshot_owner() {
     };
 }
 
-/// @dev This test is also testing mint_helper(), so 
-/// these tests are ommitted in the WL minting tests below.
 #[test]
 #[should_panic(expected: ('GoL2NFT: Not snapshot owner',))]
 fn test_mint_non_snapshot_owner() {
@@ -246,6 +247,27 @@ fn test_mint_non_snapshot_owner() {
     stop_prank(CheatTarget::All(()));
     stop_warp(CheatTarget::All(()));
     start_prank(CheatTarget::One(nft.contract_address), user2);
+    /// Mint token
+    nft.mint(6);
+    stop_prank(CheatTarget::One(nft.contract_address));
+}
+
+#[test]
+#[should_panic(expected: ('u256_sub Overflow',))]
+fn test_mint_no_approval() {
+    let (gol, nft) = deploy_mocks();
+    let (user1, user2) = mock_whitelist_setup(gol);
+    let erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
+    let nft_nft = IERC721Dispatcher { contract_address: nft.contract_address };
+    let nft_meta = IERC721MetadataDispatcher { contract_address: nft.contract_address };
+    /// Give user1 1 gol token by evolving game
+    start_prank(CheatTarget::All(()), user1);
+    start_warp(CheatTarget::All(()), 222);
+    gol.evolve(INFINITE_GAME_GENESIS);
+    erc20.transfer(user2, 3);
+    stop_prank(CheatTarget::All(()));
+    stop_warp(CheatTarget::All(()));
+    start_prank(CheatTarget::One(nft.contract_address), user1);
     /// Mint token
     nft.mint(6);
     stop_prank(CheatTarget::One(nft.contract_address));
@@ -273,60 +295,6 @@ fn test_mint_not_enough_funds() {
     nft.mint(6);
     stop_prank(CheatTarget::One(nft.contract_address));
 }
-
-// todo: ped vs pos (ped now)
-#[test]
-fn test_wl_mint() {
-    let (gol, nft) = deploy_mocks();
-    let (user1, user2) = mock_whitelist_setup(gol);
-    let erc20 = ERC20ABIDispatcher { contract_address: gol.contract_address };
-    let nft_nft = IERC721Dispatcher { contract_address: nft.contract_address };
-    let user1_bal0 = erc20.balance_of(user1); // 2
-    let user2_bal0 = erc20.balance_of(user2); // 2
-    /// Approve nft contract to spend users tokens
-    start_prank(CheatTarget::All(()), user1);
-    erc20.approve(nft.contract_address, 100);
-    stop_prank(CheatTarget::All(()));
-    start_prank(CheatTarget::All(()), user2);
-    erc20.approve(nft.contract_address, 100);
-    stop_prank(CheatTarget::All(()));
-    /// Pedersen proofs for tokens 2, 3, 4, 5 (1 is owned by admin)
-    let p2 = array![
-        0x4894368e045e09c54726344134ba1645d2eef0481fa3b6d8ff006529b538f5f,
-        0x6a600e9592885094781170c2b28e9cd1d60024e44c09c8f35bec356fa387c00,
-        0x7d91e4d17bc723ecdf0a6c85955a96fb0c30c5584db2debc70bbc8475dcc7d6,
-    ];
-    let p3 = array![
-        0x3b6749f41d7d0bfc60af31edd1ea08d4c0927f9f105f257060aa07eac4b2389,
-        0x580cbad2c307988f8836b8c6eda34ddde8f6e6f5a4c0ca960e72c263926d8f9,
-        0x7d91e4d17bc723ecdf0a6c85955a96fb0c30c5584db2debc70bbc8475dcc7d6
-    ];
-    let p4 = array![
-        0x31caf23ec5d1668f16435a9470cc73e1d69d341620b7e83789647b68f531d5f,
-        0x580cbad2c307988f8836b8c6eda34ddde8f6e6f5a4c0ca960e72c263926d8f9,
-        0x7d91e4d17bc723ecdf0a6c85955a96fb0c30c5584db2debc70bbc8475dcc7d6
-    ];
-    let p5 = array![0x0, 0x0, 0x1188a4019dd644414b9bbe2f1f84dd52b3bd66cf421d0edd0f14353c9db2638,];
-
-    start_prank(CheatTarget::One(nft.contract_address), user1);
-    nft.wl_mint_ped(2, 0x100030006e0000000000000000000000000000, 222, p2);
-    nft.wl_mint_ped(3, 0x18004a00740008000000000000000000000000, 333, p3);
-    stop_prank(CheatTarget::One(nft.contract_address));
-
-    start_prank(CheatTarget::One(nft.contract_address), user2);
-    nft.wl_mint_ped(4, 0x18004800760050000000000000000000000000, 444, p4);
-    nft.wl_mint_ped(5, 0x18004800760050000000000000000000000000, 555, p5);
-    stop_prank(CheatTarget::One(nft.contract_address));
-
-    let user1_bal1 = erc20.balance_of(user1); // 0
-    let user2_bal1 = erc20.balance_of(user2); // 0
-    assert(user1_bal0 - user1_bal1 == 2, 'NFT: mint price fail');
-    assert(user2_bal0 - user2_bal1 == 2, 'NFT: mint price fail2');
-    assert(nft_nft.owner_of(2) == user1, 'NFT: mint fail2');
-    assert(nft_nft.owner_of(3) == user1, 'NFT: mint fail3');
-    assert(nft_nft.owner_of(4) == user2, 'NFT: mint fail4');
-    assert(nft_nft.owner_of(5) == user2, 'NFT: mint fail5');
-}
-// test false proof mints
+/// @dev WL Tests are in tests::forking tests
 
 

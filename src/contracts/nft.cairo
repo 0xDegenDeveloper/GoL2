@@ -7,22 +7,13 @@ trait IGoL2NFT<TContractState> {
     fn merkle_root(self: @TContractState) -> felt252;
     fn mint_price(self: @TContractState) -> u256;
     fn mint_token_address(self: @TContractState) -> ContractAddress;
-    fn view_snapshot(self: @TContractState, generation: felt252) -> Snapshot;
     fn game_state_copies(self: @TContractState, game_state: felt252) -> felt252;
     /// Writes
     fn set_merkle_root(ref self: TContractState, new_root: felt252);
     fn set_mint_price(ref self: TContractState, new_price: u256);
     fn set_mint_token_address(ref self: TContractState, new_addr: ContractAddress);
     fn mint(ref self: TContractState, generation: felt252);
-    // poseidon
-    fn wl_mint(
-        ref self: TContractState,
-        generation: felt252,
-        state: felt252,
-        timestamp: u64,
-        proof: Array<felt252>
-    );
-    fn wl_mint_ped(
+    fn whitelist_mint(
         ref self: TContractState,
         generation: felt252,
         state: felt252,
@@ -36,9 +27,9 @@ trait IGoL2NFT<TContractState> {
     fn initializer(ref self: TContractState);
 }
 
-/// @dev Not using OpenZeppelin's interface so we can return 
+/// @dev Not using the one from OpenZeppelin so we can return 
 /// an Array<felt252> instead of a felt252 for token_uri, and 
-/// to implement a total_supply function.
+/// also to implement a total_supply function.
 #[starknet::interface]
 trait IERC721Metadata<TContractState> {
     fn name(self: @TContractState) -> felt252;
@@ -54,8 +45,7 @@ mod GoL2NFT {
     use gol2::{
         utils::{
             life_rules::evaluate_rounds, packing::{unpack_game}, uri::make_uri_array,
-            constants::{INFINITE_GAME_GENESIS}, whitelist_pedersen::verify_pedersen_merkle,
-            whitelist_poseidon::verify_poseidon_merkle
+            constants::{INFINITE_GAME_GENESIS}, whitelist::{assert_valid_proof, create_leaf_hash},
         },
         contracts::gol::{GoL2, IGoL2Dispatcher, IGoL2DispatcherTrait,}
     };
@@ -64,7 +54,6 @@ mod GoL2NFT {
         upgrades::{UpgradeableComponent, interface::IUpgradeable}, token::erc721::{ERC721Component},
         token::erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, interface::IERC20},
     };
-    use core::{pedersen::pedersen, poseidon::{poseidon_hash_span, PoseidonTrait}};
     use starknet::{get_caller_address, get_contract_address, ContractAddress, ClassHash};
     use debug::PrintTrait;
 
@@ -99,7 +88,6 @@ mod GoL2NFT {
         _mint_token_addr: ContractAddress,
         _mint_price: u256,
         _merkle_root: felt252,
-        _merkle_root_ped: felt252,
     ) {
         /// Set admin.
         self.ownable.initializer(_owner);
@@ -113,7 +101,6 @@ mod GoL2NFT {
         self.mint_price.write(_mint_price);
         /// Set merkle root.
         self.merkle_root.write(_merkle_root);
-        self.merkle_root_ped.write(_merkle_root_ped);
     }
 
     /// Storage
@@ -130,17 +117,12 @@ mod GoL2NFT {
         /// Map of gamestates to the number of times it was minted.
         /// @dev There is an assumption that overflow limits will not be reached.
         /// With gas costs alone, to overflow would be an astronomical amount of money.
-        /// (A trillion trillion trillion... dollars for every atom in the universe
+        /// (A trillion trillion trillion... dollars for each atom in the universe
         /// type of money with a bunch of 0s left over).
         game_state_copies: LegacyMap<felt252, felt252>,
         /// Merkle root for whitelist mints.
         merkle_root: felt252,
-        merkle_root_ped: felt252,
-        /// Snapshots of whitelisted mints.
-        /// @dev Pre-migration snapshots were not stored in the contract,
-        /// so they are stored here upon whitlist mint.
-        snapshots: LegacyMap<felt252, super::Snapshot>,
-        /// Components storage.
+        /// Component storage.
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
@@ -188,12 +170,12 @@ mod GoL2NFT {
         fn token_uri(self: @ContractState, token_id: u256) -> Array<felt252> {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
             let generation: felt252 = token_id.try_into().unwrap();
+            let snapshot = gol.view_snapshot(generation);
             let game_state = gol.view_game(INFINITE_GAME_GENESIS, generation);
             let cell_array = unpack_game(game_state);
             let copies = self.game_state_copies.read(game_state);
-            let timestamp = self.get_generation_snapshot(generation).timestamp;
 
-            make_uri_array(token_id, game_state, cell_array, copies, timestamp)
+            make_uri_array(token_id, game_state, cell_array, copies, snapshot.timestamp)
         }
 
         fn total_supply(self: @ContractState) -> u256 {
@@ -205,12 +187,7 @@ mod GoL2NFT {
     impl GoL2NFTImpl of super::IGoL2NFT<ContractState> {
         /// Reads
 
-        /// Get snapshot details (pre or post migration).
-        fn view_snapshot(self: @ContractState, generation: felt252) -> super::Snapshot {
-            self.get_generation_snapshot(generation)
-        }
-
-        /// Get the mint token address.
+        /// Get the mint fee token address.
         fn mint_token_address(self: @ContractState) -> ContractAddress {
             self.mint_token_addr.read()
         }
@@ -230,9 +207,11 @@ mod GoL2NFT {
             self.game_state_copies.read(game_state)
         }
 
+        /// Writes
+
         /// Owner only
 
-        /// Set a new merkle root.
+        /// Set a new merkle root for the whitelist.
         fn set_merkle_root(ref self: ContractState, new_root: felt252) {
             self.ownable.assert_only_owner();
             self.merkle_root.write(new_root);
@@ -244,62 +223,10 @@ mod GoL2NFT {
             self.mint_price.write(new_price);
         }
 
-        /// Set a new mint token address.
+        /// Set a new mint fee token address.
         fn set_mint_token_address(ref self: ContractState, new_addr: ContractAddress) {
             self.ownable.assert_only_owner();
             self.mint_token_addr.write(new_addr);
-        }
-
-        /// Writes
-
-        /// Empty function for interface definition for future upgrades to contract.
-        fn initializer(ref self: ContractState) {}
-
-        /// Mint a token to the caller if they are the generation's owner.
-        fn mint(ref self: ContractState, generation: felt252) {
-            /// Verify post-migration generation exists
-            self.assert_valid_minter(generation);
-            /// Mint 
-            self.mint_helper(get_caller_address(), generation.into());
-        }
-
-        /// Mint a token to caller if their proof is valid
-        // todo: move leaf gen to whitelist.cairo (rename merkle helper file) after hash func resolved
-        fn wl_mint_ped(
-            ref self: ContractState,
-            generation: felt252,
-            state: felt252,
-            timestamp: u64,
-            proof: Array<felt252>
-        ) {
-            let leaf: felt252 = pedersen(
-                pedersen(pedersen(pedersen(0, generation), get_caller_address().into()), state),
-                timestamp.into()
-            );
-            /// Verify proof
-            verify_pedersen_merkle(self.merkle_root_ped.read(), leaf, proof);
-            /// Mint 
-            self.mint_helper(get_caller_address(), generation.into());
-            /// Save snapshot details. 
-            self.handle_snapshot(generation, get_caller_address(), state, timestamp);
-        }
-
-        fn wl_mint(
-            ref self: ContractState,
-            generation: felt252,
-            state: felt252,
-            timestamp: u64,
-            proof: Array<felt252>
-        ) {
-            let leaf: felt252 = poseidon_hash_span(
-                array![generation, get_caller_address().into(), state, timestamp.into()].span()
-            );
-            /// Verify proof
-            verify_pedersen_merkle(self.merkle_root.read(), leaf, proof);
-            /// Mint 
-            self.mint_helper(get_caller_address(), generation.into());
-            /// Save snapshot details. 
-            self.handle_snapshot(generation, get_caller_address(), state, timestamp);
         }
 
         /// Withdraw ERC20 tokens from contract to `to`.
@@ -307,32 +234,54 @@ mod GoL2NFT {
             ref self: ContractState, token_addr: ContractAddress, amount: u256, to: ContractAddress
         ) {
             self.ownable.assert_only_owner();
-            let token = ERC20ABIDispatcher { contract_address: token_addr };
-            let success = token.transfer(to, amount);
-            assert(success, 'NFT: withdraw failed');
+            assert(
+                ERC20ABIDispatcher { contract_address: token_addr }.transfer(to, amount),
+                'GoL2NFT: withdraw failed'
+            );
+        }
+
+        /// Empty function for interface definition.
+        /// @dev Useful for future contract upgrades.
+        fn initializer(ref self: ContractState) {}
+
+        /// Public
+
+        /// Mint a token to the caller if they are the generation's owner.
+        fn mint(ref self: ContractState, generation: felt252) {
+            /// Verify caller owns snapshot
+            self.assert_caller_owns_snapshot(generation);
+            /// Mint 
+            self.mint_helper(get_caller_address(), generation.into());
+        }
+
+        /// Mint a token to the caller if they have a vaild proof.
+        /// @dev Because snapshots are only stored in the GoL2 contract post
+        /// Cairo 1 migration, this function allows users to mint tokens for
+        /// generations that were evolved before the migration.
+        /// @dev If the caller's proof is valid, this contract writes the snapshot
+        /// to the GoL2 contract.
+        fn whitelist_mint(
+            ref self: ContractState,
+            generation: felt252,
+            state: felt252,
+            timestamp: u64,
+            proof: Array<felt252>
+        ) {
+            /// Generate the leaf hash for the caller
+            let leaf = create_leaf_hash(generation, state, timestamp);
+            /// Verify proof
+            assert_valid_proof(self.merkle_root.read(), leaf, proof);
+            /// Save snapshot details. 
+            self.handle_snapshot(generation, get_caller_address(), state, timestamp);
+            /// Mint 
+            self.mint_helper(get_caller_address(), generation.into());
         }
     }
 
     /// Internal Functions
     #[generate_trait]
     impl InternalImpl of InternalTrait {
-        /// Fetch a generation snapshot pre or post migration.
-        /// @dev Pre migration, snapshots were not saved in the GoL2 contract,
-        /// They are instead saved in this contract upon whitelist mint.
-        /// @dev Post migration snapshots are saved in the GoL2 contract upon evolving.
-        fn get_generation_snapshot(self: @ContractState, generation: felt252) -> super::Snapshot {
-            let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
-            /// @dev This marker is the last generation of the infinite game upon migrating from Cairo 0 -> 1.
-            let generation_marker: u256 = gol.migration_generation_marker().into();
-            /// Post-migration
-            if generation.into() > generation_marker {
-                gol.view_snapshot(generation)
-            } else { /// Pre-migration
-                self.snapshots.read(generation)
-            }
-        }
-
-        /// Charge user for mint.
+        /// Charge the user to mint.
         fn charge_user(ref self: ContractState) {
             assert(
                 ERC20ABIDispatcher { contract_address: self.mint_token_addr.read() }
@@ -343,7 +292,7 @@ mod GoL2NFT {
             );
         }
 
-        /// Increment the number of times generation's gamestate is minted.
+        /// Increment the number of times a generation's gamestate is minted.
         fn increment_copies(ref self: ContractState, generation: felt252) {
             /// Increment game_state duplicates
             let game_state = IGoL2Dispatcher { contract_address: self.gol2_addr.read() }
@@ -355,32 +304,27 @@ mod GoL2NFT {
         fn mint_helper(ref self: ContractState, to: ContractAddress, generation: felt252) {
             /// Increment total supply
             self.total_supply.write(self.total_supply.read() + 1);
+            /// Increment game_state duplicates
+            self.increment_copies(generation);
             /// Charge caller for mint
             self.charge_user();
             /// Mint caller 1 token
             self.erc721._mint(get_caller_address(), generation.into());
-            /// Increment game_state duplicates
-            self.increment_copies(generation);
-        }
-
-        /// Fetch the generation marker in the GoL2 contract.
-        /// @dev Marker for which generation snapshots are not in the gol contract. 
-        fn get_migration_generation_marker(self: @ContractState) -> u256 {
-            let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
-            gol.migration_generation_marker().into()
         }
 
         /// Verify the caller is the owner of a generation.
-        fn assert_valid_minter(self: @ContractState, generation: felt252) {
+        fn assert_caller_owns_snapshot(self: @ContractState, generation: felt252) {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
-            let snapshot = self.get_generation_snapshot(generation);
+            let snapshot = gol.view_snapshot(generation);
             assert(snapshot.user_id == get_caller_address(), 'GoL2NFT: Not snapshot owner');
         }
 
-        /// Save snapshot details.
-        /// @dev This is done because the GoL2 contract did not save snapshot details pre-migration.
-        /// They are instead saved in this contract upon whitelist mint.
-        /// @dev Post migration, all snapshots are stored in the GoL2 contract.
+        /// Save (pre-migration) snapshot details.
+        /// @dev Post migration snapshots are stored during evolution (in infinite game).
+        /// This writes pre-migration snapshots into the GoL2 contract during 
+        /// whitelist minting.
+        /// @dev The GoL2 contract will need to have this contract's address set as 
+        /// a snapshotter for this function to succeed.
         fn handle_snapshot(
             ref self: ContractState,
             generation: felt252,
@@ -388,7 +332,11 @@ mod GoL2NFT {
             game_state: felt252,
             timestamp: u64
         ) {
-            self.snapshots.write(generation, super::Snapshot { user_id, game_state, timestamp });
+            let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
+            assert(
+                gol.add_snapshot(generation, user_id, game_state, timestamp),
+                'GoL2NFT: Snapshot save failed'
+            );
         }
     }
 }

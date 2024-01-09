@@ -21,7 +21,7 @@ trait IGoL2<TContractState> {
         user_id: ContractAddress,
         game_state: felt252,
         timestamp: u64
-    );
+    ) -> bool;
 }
 
 
@@ -42,8 +42,6 @@ mod GoL2 {
             INFINITE_GAME_GENESIS, DIM, CREATE_CREDIT_REQUIREMENT, GIVE_LIFE_CREDIT_REQUIREMENT,
             HIGH_ARRAY_LEN, BOARD_SQUARED
         },
-        // rm these
-        whitelist_pedersen::is_valid_pedersen_merkle, whitelist_poseidon::is_valid_poseidon_merkle
     };
     use alexandria_math::pow;
     use debug::PrintTrait;
@@ -235,13 +233,17 @@ mod GoL2 {
 
         /// Write 
 
+        /// Add a snapshot of a generation to the contract.
+        /// @dev Only callable by snapshotter.
+        /// @dev Only callable for generations before the migration_generation_marker.
+        /// This is because of post-migration snapshots will be stored automatically.
         fn add_snapshot(
             ref self: ContractState,
             generation: felt252,
             user_id: ContractAddress,
             game_state: felt252,
             timestamp: u64
-        ) {
+        ) -> bool {
             assert(self.is_snapshotter.read(get_caller_address()), 'GoL2: caller non snapshotter');
             let u_generation: u256 = generation.into();
             assert(
@@ -249,6 +251,7 @@ mod GoL2 {
                 'GoL2: not from pre-migration'
             );
             self.save_snapshot(generation, Snapshot { user_id, game_state, timestamp });
+            true
         }
 
         /// Create a new creator mode game.

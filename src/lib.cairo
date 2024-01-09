@@ -4,8 +4,7 @@ mod utils {
     mod packing;
     mod svg;
     mod uri;
-    mod whitelist_pedersen;
-    mod whitelist_poseidon;
+    mod whitelist;
     mod test_contract;
 }
 
