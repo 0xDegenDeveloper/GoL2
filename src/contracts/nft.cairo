@@ -9,6 +9,7 @@ trait IGoL2NFT<TContractState> {
     fn mint_token_address(self: @TContractState) -> ContractAddress;
     fn game_state_copies(self: @TContractState, game_state: felt252) -> felt252;
     /// Writes
+    fn initializer(ref self: TContractState);
     fn set_merkle_root(ref self: TContractState, new_root: felt252);
     fn set_mint_price(ref self: TContractState, new_price: u256);
     fn set_mint_token_address(ref self: TContractState, new_addr: ContractAddress);
@@ -23,8 +24,6 @@ trait IGoL2NFT<TContractState> {
     fn withdraw(
         ref self: TContractState, token_addr: ContractAddress, amount: u256, to: ContractAddress
     );
-    /// For future contract upgrades
-    fn initializer(ref self: TContractState);
 }
 
 /// @dev Not using the one from OpenZeppelin so we can return 
@@ -37,7 +36,6 @@ trait IERC721Metadata<TContractState> {
     fn token_uri(self: @TContractState, token_id: u256) -> Array<felt252>;
     fn total_supply(self: @TContractState) -> u256;
 }
-
 
 #[starknet::contract]
 mod GoL2NFT {
@@ -63,47 +61,22 @@ mod GoL2NFT {
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
 
-    /// Ownable
+    /// (Ownable)
     #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
-    /// Upgradeable
+    /// (Upgradeable)
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
-    /// ERC721
+    /// (ERC721)
     #[abi(embed_v0)]
     impl ERC721Impl = ERC721Component::ERC721Impl<ContractState>;
     impl ERC721InternalImpl = ERC721Component::InternalImpl<ContractState>;
-    /// SRC5
+    /// (SRC5)
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
 
-    /// Constructor
-    #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        _owner: ContractAddress,
-        _name: felt252,
-        _symbol: felt252,
-        _gol2_addr: ContractAddress,
-        _mint_token_addr: ContractAddress,
-        _mint_price: u256,
-        _merkle_root: felt252,
-    ) {
-        /// Set admin.
-        self.ownable.initializer(_owner);
-        /// Set name & symbol.
-        self.erc721.initializer(_name, _symbol);
-        /// Set address of GoL2 contract.
-        self.gol2_addr.write(_gol2_addr);
-        /// Set mint token address.
-        self.mint_token_addr.write(_mint_token_addr);
-        /// Set mint price.
-        self.mint_price.write(_mint_price);
-        /// Set merkle root.
-        self.merkle_root.write(_merkle_root);
-    }
+    /// Contract
 
-    /// Storage
     #[storage]
     struct Storage {
         /// Total number of tokens minted.
@@ -133,7 +106,33 @@ mod GoL2NFT {
         src5: SRC5Component::Storage,
     }
 
+    #[constructor]
+    fn constructor(
+        ref self: ContractState,
+        _owner: ContractAddress,
+        _name: felt252,
+        _symbol: felt252,
+        _gol2_addr: ContractAddress,
+        _mint_token_addr: ContractAddress,
+        _mint_price: u256,
+        _merkle_root: felt252,
+    ) {
+        /// Set admin.
+        self.ownable.initializer(_owner);
+        /// Set name & symbol.
+        self.erc721.initializer(_name, _symbol);
+        /// Set address of GoL2 contract.
+        self.gol2_addr.write(_gol2_addr);
+        /// Set mint token address.
+        self.mint_token_addr.write(_mint_token_addr);
+        /// Set mint price.
+        self.mint_price.write(_mint_price);
+        /// Set merkle root.
+        self.merkle_root.write(_merkle_root);
+    }
+
     /// Events
+
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
@@ -148,6 +147,7 @@ mod GoL2NFT {
     }
 
     /// External Functions
+
     #[external(v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
@@ -241,7 +241,9 @@ mod GoL2NFT {
         }
 
         /// Empty function for interface definition.
-        /// @dev Useful for future contract upgrades.
+        /// @dev Useful for future contract upgrades. This function is 
+        /// called by the upgrade function; allowing future upgrades to
+        /// perform any necessary initialization in the 1 `upgrade()` txn.
         fn initializer(ref self: ContractState) {}
 
         /// Public
@@ -294,7 +296,6 @@ mod GoL2NFT {
 
         /// Increment the number of times a generation's gamestate is minted.
         fn increment_copies(ref self: ContractState, generation: felt252) {
-            /// Increment game_state duplicates
             let game_state = IGoL2Dispatcher { contract_address: self.gol2_addr.read() }
                 .view_game(INFINITE_GAME_GENESIS, generation.into());
             self.game_state_copies.write(game_state, self.game_state_copies.read(game_state) + 1);
