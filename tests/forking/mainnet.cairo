@@ -41,7 +41,6 @@ trait IOldGol<TContractState> {
     fn allowance(self: @TContractState, owner: felt252, spender: felt252) -> u256;
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
-    fn migration_generation_marker(self: @TContractState) -> felt252;
     /// Write
     fn migrate(self: @TContractState, new_class_hash: ClassHash);
     fn transfer(self: @TContractState, to: felt252, value: u256);
@@ -138,7 +137,7 @@ fn test_migrate() {
 
 #[test]
 #[fork("MAINNET")]
-#[should_panic(expected: ('Contract already migrated',))]
+#[should_panic(expected: ('GoL2: Contract already migrated',))]
 fn test_migrate_again() {
     let (gol, admin, _) = do_migration();
     start_prank(CheatTarget::All(()), admin);
@@ -148,7 +147,7 @@ fn test_migrate_again() {
 
 #[test]
 #[fork("MAINNET")]
-#[should_panic(expected: ('Caller is not prev admin',))]
+#[should_panic(expected: ('GoL2: Caller is not prev admin',))]
 fn test_migrate_not_admin() {
     do_migration_as(contract_address_const::<'not admin'>());
 }
@@ -203,7 +202,6 @@ fn test_post_migration_state() {
     );
     let new_generation = new_gol.get_current_generation(INFINITE_GAME_GENESIS);
     let new_view_game = new_gol.view_game(INFINITE_GAME_GENESIS, new_generation - 100);
-    let migration_generation_marker = new_gol.migration_generation_marker();
     assert(old_name == new_name, 'name should be the same');
     assert(old_symbol == new_symbol, 'symbol should be the same');
     assert(old_total_supply == new_total_supply, 'total supply should be the same');
@@ -212,8 +210,6 @@ fn test_post_migration_state() {
     assert(old_generation == new_generation, 'generation should be the same');
     assert(old_view_game == new_view_game, 'view game should be the same');
     assert(old_allowance == new_allowance, 'allowance should be the same');
-    assert(migration_generation_marker == new_generation, 'migration gens saved wrong');
-    assert(migration_generation_marker != 0, 'migration gens saved wrong');
 }
 
 #[test]
@@ -332,11 +328,10 @@ fn test_add_snapshot_with_permit() {
     // add snapshot
     let game_state = 'random';
     let timestamp = 123;
-    let marker = gol.migration_generation_marker();
+    let marker = gol.get_current_generation(INFINITE_GAME_GENESIS);
     start_prank(CheatTarget::One(gol.contract_address), user);
-    assert(
-        gol.add_snapshot(marker, user, game_state, timestamp), 'Call fail'
-    ); // last one allowed to be added manually
+    gol.add_snapshot(marker, user, game_state, timestamp);
+    // last one allowed to be added manually
     assert(gol.add_snapshot(marker - 1, user, game_state, timestamp), 'Call fail');
     let s = GoL2::Snapshot { user_id: user, game_state, timestamp };
     let s1 = gol.view_snapshot(marker);
@@ -347,6 +342,25 @@ fn test_add_snapshot_with_permit() {
     assert(s2.user_id == s.user_id, 'Snapshot not added');
     assert(s2.game_state == s.game_state, 'Snapshot not added');
     assert(s2.timestamp == s.timestamp, 'Snapshot not added');
+}
+
+#[test]
+#[fork("MAINNET")]
+#[should_panic(expected: ('GoL2: Snapshot already exists',))]
+fn test_add_snapshot_with_permit_again() {
+    let (gol, admin, _) = do_migration();
+    let user = contract_address_const::<'user'>();
+    // set permit
+    start_prank(CheatTarget::One(gol.contract_address), admin);
+    gol.set_snapshotter(user, true);
+    stop_prank(CheatTarget::One(gol.contract_address));
+    // add snapshot
+    let game_state = 'random';
+    let timestamp = 123;
+    let marker = gol.get_current_generation(INFINITE_GAME_GENESIS);
+    start_prank(CheatTarget::One(gol.contract_address), user);
+    gol.add_snapshot(marker, user, game_state, timestamp);
+    gol.add_snapshot(marker, user, game_state, timestamp);
 }
 
 #[test]
@@ -395,7 +409,8 @@ fn test_add_snapshot_for_non_pre_migration() {
     let game_state = 'random';
     let timestamp = 123;
     start_prank(CheatTarget::One(gol.contract_address), user);
-    gol.add_snapshot(gol.migration_generation_marker() + 1, user, game_state, timestamp);
+    let migration_generation_marker = gol.get_current_generation(INFINITE_GAME_GENESIS);
+    gol.add_snapshot(migration_generation_marker + 1, user, game_state, timestamp);
     stop_prank(CheatTarget::One(gol.contract_address));
 }
 

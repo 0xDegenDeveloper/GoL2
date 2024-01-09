@@ -70,7 +70,7 @@ fn test_ensure_user_authenticated() {
 }
 
 #[test]
-#[should_panic(expected: ('User not authenticated',))]
+#[should_panic(expected: ('GoL2: User not authenticated',))]
 fn test_ensure_user_not_authenticated() {
     let mut state = GoL2::contract_state_for_testing();
     start_prank(CheatTarget::All(()), contract_address_const::<0>());
@@ -125,7 +125,7 @@ fn test_assert_game_exists() {
 }
 
 #[test]
-#[should_panic(expected: ('Game has not been started',))]
+#[should_panic(expected: ('GoL2: Zero generation',))]
 fn test_assert_game_exists_not_started() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
@@ -133,7 +133,7 @@ fn test_assert_game_exists_not_started() {
 }
 
 #[test]
-#[should_panic(expected: ('Generation does not exist yet',))]
+#[should_panic(expected: ('GoL2: Generation > current',))]
 fn test_assert_game_exists_not_evolved_yet() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
@@ -149,7 +149,7 @@ fn test_assert_game_does_not_exist() {
 }
 
 #[test]
-#[should_panic(expected: ('Game already exists',))]
+#[should_panic(expected: ('GoL2: Game already exists',))]
 fn test_assert_game_does_not_exist_already_started() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
@@ -167,7 +167,7 @@ fn test_assert_valid_cell_index() {
 }
 
 #[test]
-#[should_panic(expected: ('Cell index out of range',))]
+#[should_panic(expected: ('GoL2: Cell index out of range',))]
 fn test_assert_valid_cell_index_out_of_range() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
@@ -175,7 +175,7 @@ fn test_assert_valid_cell_index_out_of_range() {
 }
 
 #[test]
-#[should_panic(expected: ('Game size too big',))]
+#[should_panic(expected: ('GoL2: Game size too big',))]
 fn test_assert_valid_new_game_too_big() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();
@@ -220,7 +220,7 @@ fn test_activate_cell() {
 }
 
 #[test]
-#[should_panic(expected: ('No changes made to game',))]
+#[should_panic(expected: ('GoL2: No changes made to game',))]
 fn test_activate_cell_no_changes() {
     let caller = contract_address_const::<'user'>();
     let mut state = GoL2::contract_state_for_testing();

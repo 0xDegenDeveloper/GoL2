@@ -412,7 +412,7 @@ mod GoL2 {
         fn assert_game_does_not_exist(self: @ContractState, game_id: felt252) {
             assert(
                 self.stored_game.read((game_id, 1)) + self.current_generation.read(game_id) == 0,
-                'Game already exists'
+                'GoL2: Game already exists'
             );
         }
 
@@ -421,7 +421,7 @@ mod GoL2 {
             self.assert_game_does_not_exist(game);
             let game_int: u256 = game.into();
             /// @dev This is the max game size that can be create
-            assert(game_int.high < (pow(2, HIGH_ARRAY_LEN.into())), 'Game size too big');
+            assert(game_int.high < (pow(2, HIGH_ARRAY_LEN.into())), 'GoL2: Game size too big');
         }
 
         /// Create a new game.
@@ -441,7 +441,7 @@ mod GoL2 {
         /// Assert that a cell index is valid.
         /// @dev A cell index is valid if it is in the range [0, BOARD_SQUARED).
         fn assert_valid_cell_index(self: @ContractState, cell_index: usize) {
-            assert(cell_index < BOARD_SQUARED, 'Cell index out of range');
+            assert(cell_index < BOARD_SQUARED, 'GoL2: Cell index out of range');
         }
 
         /// Activate a cell in the infinite game if the cell is dead.
@@ -455,7 +455,7 @@ mod GoL2 {
             self.assert_valid_cell_index(cell_index);
             let packed_game = revive_cell(cell_index, current_state);
 
-            assert(packed_game != current_state, 'No changes made to game');
+            assert(packed_game != current_state, 'GoL2: No changes made to game');
 
             /// Generation does not increment when cell is activated
             self.save_game(INFINITE_GAME_GENESIS, generation, packed_game);

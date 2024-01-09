@@ -46,9 +46,6 @@ fn test_deploy() {
     assert(nft.mint_price() == 1, 'NFT: mint price incorrect');
     assert(nft.mint_token_address() == gol.contract_address, 'NFT: mint addr incorrect');
     assert(nft.merkle_root() == MERKLE_ROOT, 'NFT: merkle root incorrect');
-
-    mock_whitelist_setup(gol);
-    assert(gol.migration_generation_marker() == 5, 'GOL: marker incorrect');
 }
 
 /// Owner functionns

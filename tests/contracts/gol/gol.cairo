@@ -51,9 +51,6 @@ fn test_get_current_generation() {
     assert(gen == 1, 'Invalid game_state');
 }
 
-/// snapshot tests are in `forking.cairo`
-/// they require a proper migration to test
-
 #[test]
 fn test_create() {
     let (gol, _) = deploy_mocks();
@@ -211,4 +208,7 @@ fn test_give_life_to_cell() {
         );
     stop_prank(CheatTarget::All(()));
 }
+/// snapshot tests are in `forking.cairo`
+/// they require a proper migration to test
+
 
