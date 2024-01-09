@@ -31,7 +31,6 @@ mod TestContract {
             self.x.read()
         }
         fn initializer(ref self: ContractState) {
-            // assert(get_caller_address() == get_contract_address(), 'Caller not self');
             self.x.write(123);
         }
     }
