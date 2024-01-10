@@ -1,29 +1,29 @@
 ## Table of contents
 
 - [Overview](#overview)
-- [On-chain Metadata](#onchain-meta)
+- [On-chain Metadata](#on-chain-metadata)
 - [Whitelist](#whitelist)
-  - [Implementation](#impl)
-    - [On-chain](#onchain)
-    - [Off-chain](#offchain)
+  - [Implementation](#implementation)
+    - [On-chain](#on-chain)
+    - [Off-chain](#off-chain)
 
 ## Overview <a name="overview"></a>
 
-Along with migrating the GoL2 contract to Cairo 1, we also wrote the GoL2NFT contract requested by the Yuki team. This contract is for users to mint the snapshots they own (in the infinite game) as NFTs. This contract generates token URI (JSON & SVG data) on-chain.
+While migrating the GoL2 contract to Cairo 1, we also wrote the GoL2NFT contract requested by the Yuki team. This contract is for users to mint the snapshots they own (in the infinite game) as NFTs. This contract generates token URIs (JSON & SVG data) on-chain.
 
 Pre migration, snapshot details were not stored in the contract, only the generation & gamestate were. The user and timestamp are available by indexing all of the pre-migration `game_evolved` events where the `game_id` is that for infinite mode.
 
 Post migration, the GoL2 contract stores all infinite mode snapshots in contract. There are two mint functions to handle each case; `whitelist_mint()` for pre-migration snapshots, and `mint()` for post-migration snapshots.
 
-## On-chain Metadata <a name="onchain-meta"></a>
+## On-chain Metadata <a name="on-chain-metadata"></a>
 
-This contract generates all token URI data on-chain, see details [here](./tests/contracts/nft/uri/README.md)
+This contract generates all token URI data on-chain, see details [here](../tests/contracts/nft/uri/README.md)
 
 To see an example, start by running this command to generate the JSON URI:
 
 `npm run test_uri`.
 
-> _**This command runs `python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py`. You may need to use a different python command other than `python3` to run the script depending on your machine.**_
+> NOTE: This command runs `python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py`. You may need to use a different python command other than `python3` to run the script depending on your machine.
 
 `Test passed!` means the test matches the expected output; to view it for yourself see below:
 
@@ -49,11 +49,11 @@ Because pre-migration snapshots were not stored in the GoL2 contract, we need to
 
 **_[What is a Merkle Tree ?](https://decentralizedthoughts.github.io/2020-12-22-what-is-a-merkle-tree/)_**
 
-### Implementation <a name="impl"></a>
+### Implementation <a name="implementation"></a>
 
 The following steps are taken to implement this:
 
-#### On-chain<a name="onchain"></a>
+#### On-chain<a name="on-chain"></a>
 
 The NFT contract has the following mint function for pre-migration generations:
 
@@ -82,7 +82,7 @@ This function takes the details of the snapshot being minted and the user's proo
 
 ##### Step 1:
 
-We create the Poseidon leaf hash for the user, mimicking the off-chain approach discussed in the [Off-chain](#offchain) section.
+We create the Poseidon leaf hash for the user, mimicking the off-chain approach discussed in the [Off-chain](#off-chain) section.
 
 ##### Step 2:
 
@@ -100,7 +100,7 @@ _**Whitelist minting can be setup after deployment if it needs to be. To do this
 
 _**If any off-chain issues are found in the whitelist, `set_merkle_root()` can be called again by the contract admin with a new root hash.**_
 
-#### Off-chain<a name="offchain"></a>
+#### Off-chain<a name="off-chain"></a>
 
 This directory contains helper functions to create the whitelist, root hash and proofs. When a user whitelist-mints a token, they will need to pass their snapshot details and proof to the contract.
 

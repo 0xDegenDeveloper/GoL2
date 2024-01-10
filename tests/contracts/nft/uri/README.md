@@ -12,4 +12,4 @@
 
   - This script outputs the JSON URI for the acorn's evolution (generation #2).
 
-See [here](../../../../NFT.md#on-chain-metadata) for instructions.
+See [here](../../../../docs/NFT.md#on-chain-metadata) for instructions.

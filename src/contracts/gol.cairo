@@ -8,11 +8,11 @@ trait IGoL2<TContractState> {
     fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
     /// Write
+    fn initializer(ref self: TContractState);
+    fn migrate(ref self: TContractState, new_class_hash: ClassHash);
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
-    fn migrate(ref self: TContractState, new_class_hash: ClassHash);
-    fn initializer(ref self: TContractState);
     fn set_snapshotter(ref self: TContractState, user: ContractAddress, is_snapshotter: bool);
     fn add_snapshot(
         ref self: TContractState,
@@ -452,7 +452,7 @@ mod GoL2 {
             cell_index: usize,
             current_state: felt252
         ) {
-            self.assert_valid_cell_index(cell_index);
+            // self.assert_valid_cell_index(cell_index);
             let packed_game = revive_cell(cell_index, current_state);
 
             assert(packed_game != current_state, 'GoL2: No changes made to game');

@@ -6,22 +6,22 @@
 2. [Casing Changes](#casing)
    - [Events](#events)
    - [Functions](#functions)
-3. [Packing](#packing)
-4. [Additional Functions, Storage Variables and Notes](#added-functions)
+3. [Additional Functions and Storage Variables](#additional-functions-and-storage-variables)
+4. [Packing Logic](#packing-logic)
 
 ## Overview <a name="overview"></a>
 
-The purpose of this migration was to upgrade the current GoL2 contract form Cairo 0 to 1, and to place logic allowing users to mint their snapshots as NFTs.
+The purpose of this migration was to upgrade the current GoL2 contract form Cairo 0 to Cairo 1, and to also add extra logic & storage vars to allow snapshot minting. More on the NFTs [here](./NFT.md).
 
-In the pre-migrated contract, snapshot details (who/when) were not stored in contract, they were only fired through events (only the generation and its state were stored). To overcome this, the new version of the contract now stores snapshot details in the contract during each infinite game evolution. A merkle tree was constructed using all pre-migration event data to verify pre-migration snapshot ownership.
+In the pre-migrated contract, snapshot details (who/when) were not stored in on-chain, they were fired through events (only the generation and its state were stored). To overcome this, the new version of the contract now stores snapshot details in the contract during each infinite game evolution. A merkle tree was constructed using all pre-migration event data to verify pre-migration snapshot ownership.
 
-When a user successfully whitelist mints a pre-migration generation, the snapshot details are added to the GoL2 contract.
+When a user successfully whitelist mints a pre-migration generation, the snapshot details are then added to the GoL2 contract.
 
 Other changes from the migration are discussed below.
 
-## Casing Changes <a name="casing"></a>
+## Casing <a name="casing"></a>
 
-Back in the Cairo 0 days there were conflicts with the casing for function and event names. Contracts implementing Ethereum standards (ERC-20, ERC-721, etc.) used the same casing for naming events & functions as they are in Ethereum (both CamelCase); all other Cairo functions & events were named using snake_casing.
+Back in the Cairo 0 days there were conflicts with the casing for function and event names. Contracts implementing Ethereum standards (ERC-20, ERC-721, etc.) used the same casing for naming events & functions as they are in Ethereum (both CamelCase); all other Cairo functions & events were named using snake_case.
 
 Now in Cairo 1, the standard is to use snake_casing for all function names, and CamelCasing for all event names. The following changes were made to the contract:
 
@@ -125,17 +125,9 @@ decrease_allowance(spender: felt252, subtracted_value: u256)
 
 **_All other ERC20 functions have similar changes to their parameter types: felts, uints, addresses, etc._**
 
-### Packing <a name="packing"></a>
+## Additional Functions and Storage Variables<a name="additional-functions-and-storage-variables"></a>
 
-In Cairo 0 there was no looping or u256 primatives, and was a much lower-level language in general. The upgraded contract takes advantage of these lacking features; now there is no recursive functions and the game state can easily be converted from felt252 to u256 & back, making the packing/unpacking logic simpler.
-
-### Additional Functions, Storage Variables and Notes <a name="added-functions"></a>
-
-On top of upgrading the old Cairo 0 code, extra logic and storage vars were added to the contract to allow snapshot minting. More on the NFTs [here](./NFT.md).
-
-The old contract stores an evolution's gamestate, but does not store who evolved it or when. Post migration, these values are stored in a mapping (`LegacyMap<generation, Snapshot>`).
-
-The following functions were added to the new contract:
+The following elements were added to the new contract:
 
 #### Storage vars
 
@@ -149,25 +141,7 @@ is_snapshotter: LegacyMap<ContractAddress, bool>,
 migration_generation_marker: felt252,
 ```
 
-- `is_migrated`
-
-  - has the contract been migrated to Cairo 1 yet ?
-
-- `snapshots`
-
-  - Mapping for generation -> Snapshots
-
-    - These are only for generations of the infinite game
-
-- `is_snapshotter`
-
-  - Mapping for user -> snapshotter status
-    - Snapshotters are allowed to manually add snapshots to the contract
-      - Intended for the GoL2NFT contract to save pre-migration snapshots
-
-- `migration_generation_marker`
-
-  - The number of generations in the infinite game at the time of migration
+**_described [here](../README.md#storage)._**
 
 #### Functions
 
@@ -180,6 +154,10 @@ fn view_snapshot(generation: felt252) -> Snapshot
 
 /// Writes
 
+fn initializer();
+
+fn migrate(new_class_hash: ClassHash);
+
 fn set_snapshotter(user: ContractAddress, is_snapshotter: bool);
 
 fn add_snapshot(
@@ -188,22 +166,8 @@ fn add_snapshot(
     ) -> bool;
 ```
 
-**_Along with `migrate()` and `initializer()`. More info about these functions [here](./MIGRATION.md)._**
+**_described [here](../README.md#interface)._**
 
-- `is_snapshotter(user)`
+## Packing Logic<a name="packing-logic"></a>
 
-  - Returns if a user is allowed to add snapshots.
-    - Allows the GoL2NFT contract to manually add pre-migration snapshots during whitelist minting.
-
-- `view_snapshot(generation)`
-
-  - Returns the snapshop for the generation
-
-- `set_snapshotter(user, is_snapshotter)`
-
-  - Gives or removes a user's snapshotter status
-    - Only callable by the contract's admin
-
-- `add_snapshot(generation, user_id, game_state, timestamp)`
-  - Manually adds snapshot details to the GoL2 contract
-    - Caller must be a snapshotter
+In Cairo 0 there was no looping or u256 primatives, and was a much lower-level language in general. The upgraded contract takes advantage of these lacking features; now there is no recursive functions and the game state can easily be converted from felt252 to u256 & back, making the packing/unpacking logic simpler.
