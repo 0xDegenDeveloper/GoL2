@@ -1,5 +1,35 @@
 # Migration (Cairo 0 -> Cairo 1)
 
+// todo: work gas comps into this MD
+
+View gas differences by running:
+
+```
+snforge test gas --ignored
+```
+
+the output will be similar to:
+
+```
+
+[DEBUG] evolve (raw: 0x65766f6c7665
+
+[DEBUG] old (raw: 0x6f6c64
+
+[DEBUG] (raw: 0x1a734
+
+[DEBUG] new (raw: 0x6e6577
+
+[DEBUG] (raw: 0x73a0
+
+```
+
+where `0x1a734` is the Cairo 0 `evolve` function's gas usage, and `0x73a0` is the Cairo 1 `evolve` function's gas usage.
+
+```
+
+```
+
 ## Table of contents
 
 1. [Overview](#overview)
