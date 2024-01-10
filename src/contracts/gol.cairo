@@ -73,7 +73,7 @@ mod GoL2 {
         stored_game: LegacyMap<(felt252, felt252), felt252>,
         /// Map for game_id -> generation.
         current_generation: LegacyMap<felt252, felt252>,
-        /// Has contract been migrated to cairo1 ?
+        /// Has the contract been migrated to cairo1 yet ?
         is_migrated: bool,
         /// Mapping for generations -> Snapshots.
         snapshots: LegacyMap<felt252, Snapshot>,

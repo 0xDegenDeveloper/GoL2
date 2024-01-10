@@ -17,7 +17,7 @@ Post migration, the GoL2 contract stores all infinite mode snapshots in contract
 
 ## On-chain Metadata <a name="onchain-meta"></a>
 
-This contract generates all token URI data on-chain, see details [here](./tests/contracts/nft/uri/)
+This contract generates all token URI data on-chain, see details [here](./tests/contracts/nft/uri/README.md)
 
 To see an example, start by running this command to generate the JSON URI:
 

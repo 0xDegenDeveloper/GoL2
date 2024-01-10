@@ -17,12 +17,11 @@
      - [Packing a game](#packing_game)
      - [Unpacking a game](#unpacking_game)
 5. [Development](#development)
-   - [Requirements](#requirements)
 
 ## Overview <a name="overview"></a>
 
 An implementation of Conway's Game of Life as a contract on StarkNet, written
-in Cairo, with an interactive element. Originally written in Cairo 0 and now migrated to Cairo 1; for more details about this migration see [here](./MIGRATION.md#overview).
+in Cairo, with an interactive element. Originally written in Cairo 0 and now migrated to Cairo 1; for more details about this migration see [here](./docs/MIGRATION.md#overview).
 
 Players can alter the state of the game, affecting the future of the simulation.
 People may create interesting states or coordinate with others to achieve some
@@ -113,9 +112,9 @@ many generations before dying out or create a unique pattern.
 
 ### External Functions:
 
-1. Migrate - **_can only be called once, right after contract proxy deploy, by the contract owner/admin_**
+Migrate - **_can only be called once, right after contract proxy deploy, by the contract owner/admin_**
 
-It migrates the contract from Cairo 0 -> Cairo 1. See more details [here](./MIGRATION.md).
+- Migrates the contract from Cairo 0 -> Cairo 1. See more details [here](./docs/MIGRATION.md)
 
 ```
 fn migrate (
@@ -123,9 +122,9 @@ fn migrate (
 )
 ```
 
-2. Upgrade - **_can only be called by the contract owner/admin_**
+Upgrade - **_can only be called by the contract owner/admin_**
 
-Upgrades the contract.
+- Upgrades the contract
 
 ```
 fn upgrade (
@@ -133,9 +132,9 @@ fn upgrade (
 )
 ```
 
-3. Evolve
+Evolve
 
-Evolves the game and rewards user with 1 credit token.
+- Evolves the game and rewards user with 1 credit token
 
 ```
 fn evolve (
@@ -143,9 +142,9 @@ fn evolve (
 )
 ```
 
-4. Create - **_only creator mode_**
+Create - **_only creator mode_**
 
-Creates a new game, reduces user credit balance by 10 credit tokens.
+- Creates a new game, reduces user credit balance by 10 credit tokens
 
 ```
 fn create (
@@ -153,9 +152,9 @@ fn create (
 )
 ```
 
-5. Give life to cell - **_only infinite mode_**
+Give life to cell - **_only infinite mode_**
 
-Gives life to cell under chosen index, reduces user credit balance by 1 credit token.
+- Gives life to cell under chosen index, reduces user credit balance by 1 credit token
 
 ```
 fn give_life_to_cell (
@@ -190,7 +189,7 @@ fn get_current_generation (
 
 3. Get snapshot details
 
-Gets the snapshot of a specific generation in the infinite game. **_Note: A snapshot is a capture of an evolution, if a cell is revived during a generation, this is not recorded in the snapshot, only its original state/creator/timestamp. Only post-migration snapshot are stored in this (GoL2) contract. Pre-migration snapshots are stored in the GoL2NFT contract; more info [here](./MIGRATION.md)._**
+Gets the snapshot of a specific generation in the infinite game. **_Note: A snapshot is a capture of an evolution, if a cell is revived during a generation, this is not recorded in the snapshot, only its original state/creator/timestamp._**
 
 ```
 fn view_snapshot (
@@ -202,7 +201,7 @@ fn view_snapshot (
 
 4. Get the migration generation marker
 
-Gets the current generation (in the infinite game) at the time of migration. **_Note: every generation (from 1 to this number) does not store its snapshot details in the GoL2 contract, they are instead added to the GoL2NFT contract upon whitelist mint. Post migration, all snapshot details are stored in the GoL2 contract. More about this [here](./MIGRATION.md)._**
+Gets the current generation (in the infinite game) at the time of migration.
 
 ```
 fn migration_generation_marker() -> felt252
@@ -252,7 +251,7 @@ Summary:
   Max value is `128`, added to `LOW_ARRAY_LEN` has to be equal to `DIM**2`
 - `BOARD_SQUARED` - The number of cells in the game board
 
-#### Events that are emitted by the contract. These are later parsed by the [indexer](indexer/README.md). <a name="events"></a>
+#### Events that are emitted by the contract. These are later parsed by the indexer. <a name="events"></a>
 
 - `GameCreated` - Indicates a new game was created.
 
@@ -385,7 +384,7 @@ It takes the `felt252` packed game, converts it to its binary representation, th
 
 ## Development <a name="development"></a>
 
-### Requirements <a name="requirements"></a>
+### Requirements
 
 - [scarb (>= 2.3.1)](https://book.cairo-lang.org/ch01-01-installation.html)
 - [starknet-foundry (>= 0.12.0)](https://foundry-rs.github.io/starknet-foundry/getting-started/installation.html)
@@ -396,4 +395,6 @@ To build the contracts run:
 scarb build
 ```
 
-For testing and see gas usage, see [here](./tests/).
+### Testing
+
+For testing and to see gas usage, see [here](./docs/TESTING.md).
