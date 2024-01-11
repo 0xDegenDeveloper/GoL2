@@ -17,7 +17,7 @@ Post migration, the GoL2 contract stores all infinite mode snapshots in contract
 
 ## On-chain Metadata <a name="on-chain-metadata"></a>
 
-This contract generates all token URI data on-chain, see details [here](../tests/contracts/nft/uri/README.md)
+This contract generates all token URI data on-chain [here](../tests/contracts/nft/uri/README.md)
 
 To see an example, start by running this command to generate the JSON URI:
 
@@ -49,58 +49,48 @@ Because pre-migration snapshots were not stored in the GoL2 contract, we need to
 
 **_[What is a Merkle Tree ?](https://decentralizedthoughts.github.io/2020-12-22-what-is-a-merkle-tree/)_**
 
-### Implementation <a name="implementation"></a>
-
 The following steps are taken to implement this:
 
-#### On-chain<a name="on-chain"></a>
+- On-chain
 
-The NFT contract has the following mint function for pre-migration generations:
+<details>
 
 ```
-fn whitelist_mint(
-        generation: felt252,
-        state: felt252,
-        timestamp: u64,
-        proof: Array<felt252>
-    ) {
-        /// Step 1:
+fn whitelist_mint(generation: felt252, state: felt252, timestamp: u64, proof: Array<felt252> ) {
+
+        * Step 1
+
         let leaf = create_leaf_hash(generation, state, timestamp);
 
-        /// Step 2:
+        * Step 2
+
         assert_valid_proof(self.merkle_root.read(), leaf, proof);
 
-        /// Step 3:
+        * Step 3
+
         self.handle_snapshot(generation, get_caller_address(), state, timestamp);
 
-        /// Step 4:
+        * Step 4
+
         self.mint_helper(get_caller_address(), generation.into());
-    }
+}
 ```
 
-This function takes the details of the snapshot being minted and the user's proof as input.
+1.  We create the Poseidon leaf hash for the user, mimicking the off-chain approach discussed below.
 
-##### Step 1:
+2.  We verify that the leaf + proof match the official root hash.
 
-We create the Poseidon leaf hash for the user, mimicking the off-chain approach discussed in the [Off-chain](#off-chain) section.
+3.  We save the snapshot details to the GoL2 contract.
 
-##### Step 2:
+4.  We mint the user the token and other necessary steps (increment the total supply & number of times this generation's game_state has been minted and charge the mint fee).
 
-We verify that the leaf + proof match the official root hash.
+> **Whitelist minting can be setup after deployment if need be. This is done by deploying the NFT contract with the constructor argument `_merkle_root` set to `0x0`. Then, the contract admin will call `set_merkle_root()` with the whitelist's root hash once finalized.**
 
-##### Step 3:
+> **If any off-chain issues are found in the whitelist, `set_merkle_root()` can be called again by the contract admin with a new root hash.**
 
-We save the snapshot details to the GoL2 contract.
+</details>
 
-##### Step 4:
-
-We mint the user the token and other necessary steps (increment the total supply & number of times this generation's game_state has been minted and charge the mint fee).
-
-_**Whitelist minting can be setup after deployment if it needs to be. To do this, we would just deploy the NFT contract with the constructor argument `_merkle_root` set to `0x0`. Then, the contract admin will call `set_merkle_root(new_root: felt252)` with the whitelist's root hash once finalized.**_
-
-_**If any off-chain issues are found in the whitelist, `set_merkle_root()` can be called again by the contract admin with a new root hash.**_
-
-#### Off-chain<a name="off-chain"></a>
+- Off-chain
 
 This directory contains helper functions to create the whitelist, root hash and proofs. When a user whitelist-mints a token, they will need to pass their snapshot details and proof to the contract.
 

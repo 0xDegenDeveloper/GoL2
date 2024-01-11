@@ -7,13 +7,12 @@ trait IGoL2NFT<TContractState> {
     fn merkle_root(self: @TContractState) -> felt252;
     fn mint_price(self: @TContractState) -> u256;
     fn mint_token_address(self: @TContractState) -> ContractAddress;
-    fn game_state_copies(self: @TContractState, game_state: felt252) -> felt252;
     /// Writes
     fn initializer(ref self: TContractState);
+    fn mint(ref self: TContractState, generation: felt252);
     fn set_merkle_root(ref self: TContractState, new_root: felt252);
     fn set_mint_price(ref self: TContractState, new_price: u256);
     fn set_mint_token_address(ref self: TContractState, new_addr: ContractAddress);
-    fn mint(ref self: TContractState, generation: felt252);
     fn whitelist_mint(
         ref self: TContractState,
         generation: felt252,
@@ -26,9 +25,8 @@ trait IGoL2NFT<TContractState> {
     );
 }
 
-/// @dev Not using the one from OpenZeppelin so we can return 
-/// an Array<felt252> instead of a felt252 for token_uri, and 
-/// also to implement a total_supply function.
+/// @dev Not using OpenZeppelin's in order to return an Array<felt252>
+/// for token_uri & to implement total_supply
 #[starknet::interface]
 trait IERC721Metadata<TContractState> {
     fn name(self: @TContractState) -> felt252;
@@ -150,6 +148,11 @@ mod GoL2NFT {
 
     #[external(v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
+        /// Write
+
+        /// Upgrade the contract to the new implementation hash.
+        /// @dev Only callable by the contract owner.
+        /// @dev Calls the new implementation's initializer function.
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
@@ -167,6 +170,10 @@ mod GoL2NFT {
             self.erc721.ERC721_symbol.read()
         }
 
+        fn total_supply(self: @ContractState) -> u256 {
+            self.total_supply.read()
+        }
+
         fn token_uri(self: @ContractState, token_id: u256) -> Array<felt252> {
             let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
             let generation: felt252 = token_id.try_into().unwrap();
@@ -176,10 +183,6 @@ mod GoL2NFT {
             let copies = self.game_state_copies.read(game_state);
 
             make_uri_array(token_id, game_state, cell_array, copies, snapshot.timestamp)
-        }
-
-        fn total_supply(self: @ContractState) -> u256 {
-            self.total_supply.read()
         }
     }
 
@@ -200,11 +203,6 @@ mod GoL2NFT {
         /// Get the merkle root of the whitelist.
         fn merkle_root(self: @ContractState) -> felt252 {
             self.merkle_root.read()
-        }
-
-        /// Get the number of copies that a game state has been minted.
-        fn game_state_copies(self: @ContractState, game_state: felt252) -> felt252 {
-            self.game_state_copies.read(game_state)
         }
 
         /// Writes
@@ -229,7 +227,7 @@ mod GoL2NFT {
             self.mint_token_addr.write(new_addr);
         }
 
-        /// Withdraw ERC20 tokens from contract to `to`.
+        /// Withdraw ERC20 tokens from the contract.
         fn withdraw(
             ref self: ContractState, token_addr: ContractAddress, amount: u256, to: ContractAddress
         ) {

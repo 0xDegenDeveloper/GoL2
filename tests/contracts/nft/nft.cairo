@@ -222,7 +222,6 @@ fn test_mint_snapshot_owner() {
             snapshot.game_state == gol.view_game(INFINITE_GAME_GENESIS, i.into()),
             'NFT: snapshot game_state fail'
         );
-        assert(nft.game_state_copies(snapshot.game_state) == 1, 'NFT: game_state_copies fail');
         i += 1;
     };
 }

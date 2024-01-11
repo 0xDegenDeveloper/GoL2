@@ -71,9 +71,9 @@ mod GoL2 {
     struct Storage {
         /// Mapping for game_id -> generation -> state.
         stored_game: LegacyMap<(felt252, felt252), felt252>,
-        /// Map for game_id -> generation.
+        /// Mapping for game_id -> generation.
         current_generation: LegacyMap<felt252, felt252>,
-        /// Has the contract been migrated to cairo1 yet ?
+        /// Has the contract been migrated to Cairo 1 yet ?
         is_migrated: bool,
         /// Mapping for generations -> Snapshots.
         snapshots: LegacyMap<felt252, Snapshot>,
@@ -82,8 +82,7 @@ mod GoL2 {
         /// snapshots to the contract (intended for the NFT
         /// contract to handle pre-migration generations).
         is_snapshotter: LegacyMap<ContractAddress, bool>,
-        /// Number of generations in the infinite game at the time of
-        /// migrating from Cairo 0 to Cario 1.
+        /// Number of generations in the infinite game at the time of migration.
         migration_generation_marker: felt252,
         /// Component storage.
         #[substorage(v0)]
@@ -161,6 +160,10 @@ mod GoL2 {
     #[external(v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
         /// Write
+
+        /// Upgrade the contract to the new implementation hash.
+        /// @dev Only callable by the contract owner.
+        /// @dev Calls the new implementation's initializer function.
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             self.ownable.assert_only_owner();
             self.upgradeable._upgrade(new_class_hash);
@@ -168,6 +171,8 @@ mod GoL2 {
         }
     }
 
+    /// @dev Re-define OpenZeppelin's ERC20Metadata interface to
+    /// return 0 for decimals.
     #[external(v0)]
     impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
         fn decimals(self: @ContractState) -> u8 {
@@ -220,7 +225,7 @@ mod GoL2 {
             self.is_snapshotter.write(user, is_snapshotter);
         }
 
-        /// Migrate contract to new class hash (Cairo 0 -> Cairo 1).
+        /// Migrate the contract from the old proxy implementation.
         /// @dev Only callable once.
         fn migrate(ref self: ContractState, new_class_hash: ClassHash) {
             let prev_admin = contract_address_try_from_felt252(self.Proxy_admin.read()).unwrap();
@@ -279,13 +284,14 @@ mod GoL2 {
         }
 
         /// Evolve a game by 1 generation.
+        /// @dev Saves a snapshot of this generation if infinite.
         fn evolve(ref self: ContractState, game_id: felt252) {
             let caller = self.ensure_user();
             let (generation, game) = self.evolve_game(game_id, caller);
             self.save_game(game_id, generation, game);
             self.save_generation_id(game_id, generation);
             self.reward_user(caller);
-            /// Save a snapshot of this generation if infinite mode
+
             if game_id == INFINITE_GAME_GENESIS {
                 self
                     .save_snapshot(
@@ -311,6 +317,7 @@ mod GoL2 {
     }
 
     /// Internal Functions
+
     #[generate_trait]
     impl GoL2Internals of GoL2InternalTrait {
         /// Get a game at a generation if it exists.
