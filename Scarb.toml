@@ -16,12 +16,10 @@ alexandria_encoding = { git = "https://github.com/keep-starknet-strange/alexandr
 
 [[target.starknet-contract]]
 sierra = true
-# sierra-text = true
 casm = true
 
 [lib]
 sierra = true
-# casm = true
 sierra-text = true
 
 [[tool.snforge.fork]]

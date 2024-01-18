@@ -46,7 +46,12 @@ fn make_uri_array(
     };
     /// External url
     uri.append('","external_url":');
-    uri.append('"https://gol2.io",'); // todo: specific url for token ? 
+    uri.append('"https://gol2.io/snapshot/');
+    if token_id.high != 0 {
+        uri.append(token_id.high.to_ascii());
+    }
+    uri.append(token_id.low.to_ascii());
+    uri.append('",');
     /// Attributes
     make_attributes(ref uri, alive_count, token_id, copies, timestamp);
     uri.append('}');
