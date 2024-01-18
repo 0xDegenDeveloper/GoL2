@@ -416,7 +416,6 @@ fn test_add_snapshot_for_non_pre_migration() {
 
 /// Whitelist
 
-// todo: test snapshot added to gol
 #[test]
 #[fork("MAINNET")]
 fn test_whitelist_mint() {

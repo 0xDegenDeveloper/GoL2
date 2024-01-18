@@ -2,15 +2,18 @@ import { num } from "starknet";
 import { MerkleTree } from "merkletreejs";
 import { poseidonHashMany } from "@scure/starknet";
 import { bytesToNumberBE, numberToBytesBE } from "@noble/curves/abstract/utils";
-import * as rawData from "./fork_whitelist.json";
+import * as fs from "fs";
+// import * as rawData from "./fork_whitelist.json";
+// import * as rawData from "./test_rm.json";
+// import * as rawData from "./whitelist-prod.json";
 
-type Snapshot = {
+export type Snapshot = {
   user_id: string;
   game_state: string;
   timestamp: number;
 };
 
-type DataStructure = {
+export type DataStructure = {
   [generation: string]: Snapshot;
 };
 
@@ -36,7 +39,7 @@ const createLeafHash = (generation: string, snapshot: Snapshot): string => {
  * @param generation The generation to fetch the leaf hash for.
  * @returns The hex string (0xabcd...) leaf hash.
  */
-const getHashedLeaf = (generation: string): Buffer => {
+const getHashedLeaf = (generation: string, data: DataStructure): Buffer => {
   return Buffer.from(
     numberToBytesBE(
       num.toBigInt(createLeafHash(generation, data[generation])),
@@ -49,10 +52,10 @@ const getHashedLeaf = (generation: string): Buffer => {
  * Creates a Merkle tree from the whitelist data.
  * @returns The Merkle tree.
  */
-const createTree = (data: DataStructure): MerkleTree => {
+export const createTree = (data: DataStructure): MerkleTree => {
   /// Create the leaf hashes for each generation in the data.
   const leaves: Buffer[] = Object.keys(data).map((generation) =>
-    getHashedLeaf(generation)
+    getHashedLeaf(generation, data)
   );
   /**
    * Re-defined Poseidon hash function.
@@ -89,8 +92,18 @@ const createTree = (data: DataStructure): MerkleTree => {
  * @param generation The generation to get the proof for.
  * @returns The proof as an array of strings representing felt252s.
  */
-const getProof = (tree: MerkleTree, generation: string): string[] =>
-  tree.getHexProof(getHashedLeaf(generation));
+
+let i = 1;
+const getProof = (
+  tree: MerkleTree,
+  generation: string,
+  data: DataStructure
+): string[] => {
+  const proof = tree.getHexProof(getHashedLeaf(generation, data));
+  console.log("proof", i, "fetched");
+  i++;
+  return proof;
+};
 
 /**
  * Get proofs for a list of generations.
@@ -98,27 +111,41 @@ const getProof = (tree: MerkleTree, generation: string): string[] =>
  * @param generations The generations to get the proofs for.
  * @returns A list of proofs, each proof is an array of strings representing felt252s.
  */
-const getProofs = (tree: MerkleTree, generations: string[]): string[][] =>
-  generations.map((generation) => getProof(tree, generation));
+export const getProofs = (
+  tree: MerkleTree,
+  generations: string[],
+  data: DataStructure
+): string[][] =>
+  generations.map((generation) => getProof(tree, generation, data));
+
+export const makeKeys = (start: number, end: number): string[] => {
+  return Array.from({ length: end - start + 1 }, (_, index) =>
+    (start + index).toString()
+  );
+};
 
 /**
  * Demonstrate helper functions using mock whitelist data.
  */
-const data: DataStructure = rawData;
-const tree = createTree(data);
-const generations = Object.keys(data);
-const proofs = getProofs(tree, generations);
+// const data: DataStructure = rawData;
+// console.log("data parsed");
 
-const output: string = `
---- Root: ${tree.getHexRoot()}\n
---- Tree:\n\n${tree.toString()}\n
---- Leaves:\n\n${tree
-  .getHexLeaves()
-  .map((leaf) => `< ${leaf} >`)
-  .join("\n")}\n
---- Proofs for generations:\n\n${proofs
-  .map((proof, i) => `<${i + 1}>\n\n[${proof.join(", ")}]\n`)
-  .join("\n")}
-  `;
+// const tree = createTree(data);
+// console.log("tree created");
 
-console.log(output);
+// const generations = Object.keys(data);
+// console.log("generations gathered");
+
+// const proofs = getProofs(tree, generations);
+
+// let output: any = {};
+
+// proofs.map((proof, i) => {
+//   output[i + 1] = proof;
+// });
+
+// const outputFile = "./whitelist/proofs.json";
+
+// fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
+
+// console.log("output file created");

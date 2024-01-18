@@ -8,9 +8,6 @@ mod utils {
     mod test_contract;
 }
 
-mod scripts { // mod deploy_script;
-}
-
 mod contracts {
     mod gol;
     mod nft;
