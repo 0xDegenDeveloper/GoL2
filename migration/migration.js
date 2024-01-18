@@ -1,15 +1,16 @@
 const { Account, json, RpcProvider, Contract } = require("starknet");
 const { config } = require("dotenv");
+const process = require("process");
 const { readFileSync } = require("fs");
 const env = config().parsed;
 
 const environment = env.ENVIRONMENT;
 const nodeUrl =
-  environment == "KATANA"
-    ? env.KATANA_RPC_URL
+  environment == "MAINNET"
+    ? env.MAINNET_RPC_URL
     : environment == "GOERLI"
     ? env.GOERLI_RPC_URL
-    : env.MAINNET_RPC_URL;
+    : env.KATANA_RPC_URL;
 
 const provider = new RpcProvider({ nodeUrl });
 const account = new Account(provider, env.WALLET_ADDRESS, env.PRIVATE_KEY);
@@ -41,7 +42,6 @@ const AbiPaths = {
   /// New GoL2 compiled contract
   newGol: json.parse(
     readFileSync("./target/dev/gol2_GoL2.contract_class.json").toString("ascii")
-    // readFileSync("./migration/ABIs/NewGoL2.json").toString("ascii")
   ),
   /// GoL2NFT compiled contract
   nft: json.parse(
@@ -52,32 +52,38 @@ const AbiPaths = {
 };
 
 /**
- * Deploy a mock proxy instance for testing with Katana.
+ * Deploy a mock proxy instance for testing.
  * @returns The address of the deployed mock proxy.
  */
 const mockDeploy = async () => {
-  /// Deploy the mock proxy
   console.log("\nDeploying mock proxy...\n");
   const deployResult = await account.deploy({
     classHash: ClassHashes.proxy,
     constructorCalldata: [ClassHashes.oldGol],
   });
   await provider.waitForTransaction(deployResult.transaction_hash);
-
-  /// Initialize (ERC20/Admin) the mock proxy
+  /**
+   * @dev Initialize ERC20 meta, Proxy admin, and evolve the game 3 times to test state.
+   */
   console.log(`Initializing mock proxy...\n`);
-  const initResult = await new Contract(
+  const mockProxy = new Contract(
     AbiPaths.oldGol,
-    deployResult.contract_address[0],
+    deployResult.contract_address[0], // address just deployed
     account
-  ).invoke("initializer", [
-    account.address,
-    "0x47616d65206f66204c69666520546f6b656e",
-    "0x474f4c",
-    "0x0",
-  ]);
-  await provider.waitForTransaction(initResult.transaction_hash);
-
+  );
+  const multicall = [
+    mockProxy.populate("initializer", [
+      account.address, /// set account as admin
+      "0x47616d65206f66204c69666520546f6b656e", // "Game of Life Token"
+      "0x474f4c", // "GOL"
+      "0x0", // decimals
+    ]),
+    mockProxy.populate("evolve", ["0x7300100008000000000000000000000000"]),
+    mockProxy.populate("evolve", ["0x7300100008000000000000000000000000"]),
+    mockProxy.populate("evolve", ["0x7300100008000000000000000000000000"]),
+  ];
+  const simulateResult = await account.execute(multicall);
+  await provider.waitForTransaction(simulateResult.transaction_hash);
   console.log(`Mock proxy deployed!`);
   return deployResult.contract_address[0];
 };
@@ -86,21 +92,20 @@ const mockDeploy = async () => {
  * Perform the 2-step migration process.
  * @dev Step 1 is upgrading the implementation hash of the proxy.
  * @dev Step 2 is migrating the proxy to no longer be a proxy.
- * @param {string} environment The environment to run this migration in.
- * @note For KATANA, we deploy a mock proxy instance because we cannot
- * cheat the caller, requiring a new instance with a new proxy admin.
- * @note For GOERLI, we manually deploy a proxy instance because the live
- * goerli instance is not a proxy.
+ * @param {String} environment - The environment to run this migration in.
+ * @note For KATANA | GOERLI, we need to pass a mock proxy instance. This
+ * is because we cannot spoof the caller, requiring a fresh instance with
+ * a new admin.
  * @note For MAINNET, we use the live contract instance.
  */
-const migrate = async (environment = "KATANA") => {
+const migrate = async (environment = "KATANA", golInstanceAddress = null) => {
   /// Get GoL2 proxy address
   const golAddress =
-    environment == "KATANA"
-      ? await mockDeploy()
-      : environment == "GOERLI"
-      ? addresses["goerliProxy"]
-      : addresses["mainnetProxy"];
+    environment == "MAINNET" ? addresses["mainnetProxy"] : golInstanceAddress;
+
+  if (golAddress == null) {
+    throw new Error("No GoL2 address provided!");
+  }
 
   /**
    * @dev GoL2 is already declared on Goerli and Katana, so we only need to
@@ -117,28 +122,40 @@ const migrate = async (environment = "KATANA") => {
     console.log(`GoL2 declared!`);
   }
 
-  /**
-   * @dev Step 1: Upgrade the proxy implementation hash.
-   */
+  console.log("\nPerforming migration...\n");
   const newGol = new Contract(AbiPaths.newGol.abi, golAddress, account);
-  console.log("\nUpgrading proxy implementation hash...\n");
-  const upgradeResult = await newGol.invoke("upgrade", [ClassHashes.newGol]);
-  await provider.waitForTransaction(upgradeResult.transaction_hash);
-  console.log(`Proxy implementation hash upgraded!\n`);
-
-  /**
-   * @dev Step 2: Migrate from proxy implementation.
-   */
-  console.log("Migrating from proxy implementation...\n");
-  const migrateResult = await newGol.invoke("migrate", [ClassHashes.newGol]);
+  const multicall = [
+    newGol.populate("upgrade", [ClassHashes.newGol]),
+    newGol.populate("migrate", [ClassHashes.newGol]),
+  ];
+  const migrateResult = await account.execute(multicall);
   await provider.waitForTransaction(migrateResult.transaction_hash);
+  return golAddress;
 };
 
-migrate("KATANA")
-  .then(() => {
-    console.log("Migrated successfully!\n");
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.log(`Failed to migrate ! reason: ${error}\n`);
-  });
+if (process.argv[2] == "MOCK") {
+  mockDeploy()
+    .then((address) => {
+      console.log(
+        `\nMock deployed at ${address}\n\nView proxy instance here: https://goerli.voyager.online/contract/${address}\n`
+      );
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.log(`\nFailed to deploy mock! Reason: ${error}\n`);
+    });
+}
+
+if (process.argv[2] == "MIGRATE") {
+  const golAddress = process.argv[3];
+  migrate(environment, golAddress)
+    .then((address) => {
+      console.log(
+        `Migrated successfully!\n\nView here: https://goerli.voyager.online/contract/${address}\n`
+      );
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.log(`Failed to migrate! Reason: ${error}\n`);
+    });
+}
