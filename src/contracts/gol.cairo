@@ -3,7 +3,7 @@ use starknet::{ContractAddress, ClassHash};
 #[starknet::interface]
 trait IGoL2<TContractState> {
     /// Read
-    fn is_snapshotter(self: @TContractState, user: ContractAddress) -> bool;
+    fn snapshotter(self: @TContractState) -> ContractAddress;
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
@@ -13,7 +13,7 @@ trait IGoL2<TContractState> {
     fn create(ref self: TContractState, game_state: felt252);
     fn evolve(ref self: TContractState, game_id: felt252);
     fn give_life_to_cell(ref self: TContractState, cell_index: usize);
-    fn set_snapshotter(ref self: TContractState, user: ContractAddress, is_snapshotter: bool);
+    fn set_snapshotter(ref self: TContractState, user: ContractAddress);
     fn add_snapshot(
         ref self: TContractState,
         generation: felt252,
@@ -77,11 +77,9 @@ mod GoL2 {
         is_migrated: bool,
         /// Mapping for generations -> Snapshots.
         snapshots: LegacyMap<felt252, Snapshot>,
-        /// Mapping for user -> snapshotter status.
-        /// @dev Snapshotters are allowed to manually add
-        /// snapshots to the contract (intended for the NFT
-        /// contract to handle pre-migration generations).
-        is_snapshotter: LegacyMap<ContractAddress, bool>,
+        /// The snapshotter is allowed to manually add snapshots.
+        /// @dev This allows the GoL2NFT contract to save pre-migration generations.
+        snapshotter: ContractAddress,
         /// Number of generations in the infinite game at the time of migration.
         migration_generation_marker: felt252,
         /// Component storage.
@@ -192,10 +190,10 @@ mod GoL2 {
     impl GoL2Impl of super::IGoL2<ContractState> {
         /// Reads
 
-        /// Get if a user is a snapshotter.
-        /// @dev A snapshotter is a contract allowed to create snapshots of the infinite game.
-        fn is_snapshotter(self: @ContractState, user: ContractAddress) -> bool {
-            self.is_snapshotter.read(user)
+        /// Get snapshotter's address.
+        /// @dev The snapshotter is the contract allowed to create snapshots of the infinite game.
+        fn snapshotter(self: @ContractState) -> ContractAddress {
+            self.snapshotter.read()
         }
 
         /// Get the game state at a given generation.
@@ -217,12 +215,13 @@ mod GoL2 {
 
         /// Owner only 
 
-        /// Set a user's snapshotter status.
-        /// @dev A snapshotter is a contract allowed to create snapshots for the infinite game.
-        /// @dev This allows pre-migration snapshots to be saved in the contract via 3rd party contracts.
-        fn set_snapshotter(ref self: ContractState, user: ContractAddress, is_snapshotter: bool) {
+        /// Set the snapshotter
+        /// @dev The snapshotter is allowed to create snapshots for the infinite game.
+        /// @dev This allows pre-migration snapshots to be saved in the contract by 
+        /// the GoL2NFT contract.
+        fn set_snapshotter(ref self: ContractState, user: ContractAddress) {
             self.ownable.assert_only_owner();
-            self.is_snapshotter.write(user, is_snapshotter);
+            self.snapshotter.write(user);
         }
 
         /// Migrate the contract from the old proxy implementation.
@@ -250,10 +249,10 @@ mod GoL2 {
         /// perform any necessary initialization in the 1 `upgrade()` txn.
         fn initializer(ref self: ContractState) {}
 
-        /// Snapshotters only
+        /// Snapshotter only
 
         /// Add a snapshot of a generation to the contract.
-        /// @dev Only callable by a snapshotter.
+        /// @dev Only callable by the snapshotter.
         /// @dev Only callable for generations <= the migration_generation_marker
         /// because post-migration snapshots are stored automatically.
         fn add_snapshot(
@@ -263,7 +262,7 @@ mod GoL2 {
             game_state: felt252,
             timestamp: u64
         ) -> bool {
-            assert(self.is_snapshotter.read(get_caller_address()), 'GoL2: caller non snapshotter');
+            assert(self.snapshotter.read() == get_caller_address(), 'GoL2: caller non snapshotter');
             let u_generation: u256 = generation.into();
             assert(
                 u_generation <= self.migration_generation_marker.read().into() && u_generation > 0,

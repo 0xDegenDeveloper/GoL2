@@ -42,10 +42,10 @@ fn get_current_generation(game_id: felt252) -> felt252;
 ```
 
 ```
-/// Get if a user is a snapshotter.
-/// @dev A snapshotter is a contract allowed to create snapshots of the infinite game.
+/// Get the snapshotter
+/// @dev The snapshotter is the contract allowed to create snapshots of the infinite game.
 
-fn is_snapshotter(user: ContractAddress) -> bool;
+fn snapshotter() -> ContractAddress;
 ```
 
 ```
@@ -74,27 +74,28 @@ fn upgrade(new_class_hash: ClassHash);
 ```
 
 ```
-/// Set a user's snapshotter status.
-/// @dev A snapshotter is a contract allowed to create snapshots for the infinite game.
-/// @dev This allows pre-migration snapshots to be saved in the contract via 3rd party contracts.
+/// Set the snapshotter
+/// @dev The snapshotter is allowed to create snapshots for the infinite game.
+/// @dev This allows pre-migration snapshots to be saved in the contract by
+/// the GoL2NFT contract.
 
-fn set_snapshotter(user: ContractAddress, is_snapshotter: bool);
+fn set_snapshotter(user: ContractAddress);
 ```
 
 #### External (only-snapshotters):
 
 ```
 /// Add a snapshot of a generation to the contract.
-/// @dev Only callable by a snapshotter.
+/// @dev Only callable by the snapshotter.
 /// @dev Only callable for generations <= the migration_generation_marker
 /// because post-migration snapshots are stored automatically.
 
 fn add_snapshot(
-generation: felt252,
-user_id: ContractAddress,
-game_state: felt252,
-timestamp: u64
-) -> bool;
+    generation: felt252,
+    user_id: ContractAddress,
+    game_state: felt252,
+    timestamp: u64
+  ) -> bool;
 ```
 
 #### External (public):

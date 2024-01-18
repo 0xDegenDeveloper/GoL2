@@ -323,7 +323,7 @@ mod GoL2NFT {
         /// This writes pre-migration snapshots into the GoL2 contract during 
         /// whitelist minting.
         /// @dev The GoL2 contract will need to have this contract's address set as 
-        /// a snapshotter for this function to succeed.
+        /// the snapshotter for this function to succeed.
         fn handle_snapshot(
             ref self: ContractState,
             generation: felt252,

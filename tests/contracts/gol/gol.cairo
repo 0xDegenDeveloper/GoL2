@@ -208,7 +208,4 @@ fn test_give_life_to_cell() {
         );
     stop_prank(CheatTarget::All(()));
 }
-/// snapshot tests are in `forking.cairo`
-/// they require a proper migration to test
-
 

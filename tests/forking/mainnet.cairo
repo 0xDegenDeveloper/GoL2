@@ -279,7 +279,7 @@ fn test_post_migration_envoking() {
 }
 
 /// Snapshot & Whitelist tests:
-/// These tests need to use snapshotters which is only possible with fork tests.
+/// These tests need to use the snapshotter which is only possible with fork tests.
 /// The migration utilizes the `Proxy_admin` storage var that only exists
 /// in the cairo0 instance of the contract.
 /// Doing this with mocks is not possible because the owner of the contract
@@ -289,7 +289,7 @@ fn test_post_migration_envoking() {
 fn test_is_snapshotter() {
     let (gol, _, _) = do_migration();
     let caller = contract_address_const::<'caller'>();
-    assert(gol.is_snapshotter(caller) == false, 'Invalid snapshotter init');
+    assert(gol.snapshotter() == contract_address_const::<''>(), 'Invalid snapshotter init');
 }
 
 #[test]
@@ -298,10 +298,10 @@ fn test_set_snapshotter_owner() {
     let (gol, admin, _) = do_migration();
     let caller = contract_address_const::<'caller'>();
     start_prank(CheatTarget::One(gol.contract_address), admin);
-    gol.set_snapshotter(caller, true);
-    assert(gol.is_snapshotter(caller) == true, 'Invalid snapshotter set');
-    gol.set_snapshotter(caller, false);
-    assert(gol.is_snapshotter(caller) == false, 'Invalid snapshotter unset');
+    gol.set_snapshotter(caller);
+    assert(gol.snapshotter() == caller, 'Invalid snapshotter set');
+    gol.set_snapshotter(contract_address_const::<''>());
+    assert(gol.snapshotter() == contract_address_const::<''>(), 'Invalid snapshotter unset');
     stop_prank(CheatTarget::One(gol.contract_address));
 }
 
@@ -312,7 +312,7 @@ fn test_set_snapshotter_non_owner() {
     let (gol, _, _) = do_migration();
     let caller = contract_address_const::<'caller'>();
     start_prank(CheatTarget::One(gol.contract_address), caller);
-    gol.set_snapshotter(caller, true);
+    gol.set_snapshotter(caller);
     stop_prank(CheatTarget::One(gol.contract_address));
 }
 
@@ -323,7 +323,7 @@ fn test_add_snapshot_with_permit() {
     let user = contract_address_const::<'user'>();
     // set permit
     start_prank(CheatTarget::One(gol.contract_address), admin);
-    gol.set_snapshotter(user, true);
+    gol.set_snapshotter(user);
     stop_prank(CheatTarget::One(gol.contract_address));
     // add snapshot
     let game_state = 'random';
@@ -352,7 +352,7 @@ fn test_add_snapshot_with_permit_again() {
     let user = contract_address_const::<'user'>();
     // set permit
     start_prank(CheatTarget::One(gol.contract_address), admin);
-    gol.set_snapshotter(user, true);
+    gol.set_snapshotter(user);
     stop_prank(CheatTarget::One(gol.contract_address));
     // add snapshot
     let game_state = 'random';
@@ -385,7 +385,7 @@ fn test_add_snapshot_for_0_generation() {
     let user = contract_address_const::<'user'>();
     // set permit
     start_prank(CheatTarget::One(gol.contract_address), admin);
-    gol.set_snapshotter(user, true);
+    gol.set_snapshotter(user);
     stop_prank(CheatTarget::One(gol.contract_address));
     // add snapshot
     let game_state = 'random';
@@ -403,7 +403,7 @@ fn test_add_snapshot_for_non_pre_migration() {
     let user = contract_address_const::<'user'>();
     // set permit
     start_prank(CheatTarget::One(gol.contract_address), admin);
-    gol.set_snapshotter(user, true);
+    gol.set_snapshotter(user);
     stop_prank(CheatTarget::One(gol.contract_address));
     // add snapshot
     let game_state = 'random';
@@ -450,7 +450,7 @@ fn test_whitelist_mint() {
         0x03266c210b30bff10f3415fecc52fc809b3858ba5100d00e58420ff6f52c15dd
     ];
     /// Set GoL2NFT as a snapshotter 
-    gol.set_snapshotter(nft.contract_address, true);
+    gol.set_snapshotter(nft.contract_address);
     stop_prank(CheatTarget::One(gol.contract_address));
     /// Whitelist mint
     start_prank(CheatTarget::One(nft.contract_address), admin);
@@ -504,7 +504,7 @@ fn test_whitelist_mint_false_proof() {
         0xbeef
     ];
     /// Set GoL2NFT as a snapshotter 
-    gol.set_snapshotter(nft.contract_address, true);
+    gol.set_snapshotter(nft.contract_address);
     stop_prank(CheatTarget::One(gol.contract_address));
     /// Whitelist mint
     start_prank(CheatTarget::One(nft.contract_address), admin);
@@ -538,7 +538,7 @@ fn test_whitelist_mint_false_caller() {
         0x01b1e46a9c846a98713182ed39bdb475512a756aee2a6382551686a11a192e27,
     ];
     /// Set GoL2NFT as a snapshotter 
-    gol.set_snapshotter(nft.contract_address, true);
+    gol.set_snapshotter(nft.contract_address);
     stop_prank(CheatTarget::One(gol.contract_address));
     /// Whitelist mint
     start_prank(CheatTarget::One(nft.contract_address), not_admin);
