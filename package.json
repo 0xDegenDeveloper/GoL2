@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test_uri": "python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py",
     "mock": "node ./migration/migration.js MOCK",
-    "migrate": "node ./migration/migration.js MIGRATE"
+    "migrate": "node ./migration/migration.js MIGRATE",
+    "nft": "node ./migration/migration.js NFT"
   },
   "repository": {
     "type": "git",
