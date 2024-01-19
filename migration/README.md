@@ -95,7 +95,7 @@ Where `0x1a734` is the Cairo 0 `evolve()` gas usage, and `0x73a0` is the Cairo 1
 
 ## Breakdown
 
-The previous GoL2 contract implemented [OpenZeppelin's proxy]() set up to allow for future contract upgrades. In the new Cairo, we can upgrade a contract's implementation hash directly with a syscall, omitting the need for a proxy setup. This makes migrating the previous contract a 2-step process:
+The previous GoL2 contract implemented [OpenZeppelin's proxy](https://github.com/OpenZeppelin/cairo-contracts/blob/release-0.2.0/src/openzeppelin/upgrades/Proxy.cairo) set up to allow for future contract upgrades. In the new Cairo, we can upgrade a contract's implementation hash directly with a syscall, omitting the need for a proxy setup. This makes migrating the previous contract a 2-step process:
 
 ### Step 1:
 

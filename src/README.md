@@ -1,14 +1,10 @@
 # Contracts
 
-<details>
-
 - [GoL2](#gol2)
 - [GoL2NFT](#gol2nft)
 - [Deployment](#deployment)
 
-</details>
-
-## GoL2
+# GoL2
 
 <details>
 
@@ -17,7 +13,7 @@
 
 </details>
 
-### Overview:
+## Overview:
 
 An ERC-20 contract that handles the logic and storage for both game modes:
 
@@ -33,7 +29,7 @@ An ERC-20 contract that handles the logic and storage for both game modes:
 
   - To create a new game, a player specifies which cells are initially alive (this game_state is the game_id and must be unique). These creator mode games can be evolved by anyone (minting the player 1 credit token as well), but cannot have their cells revived like the infinite game can.
 
-### Interface:
+## Interface:
 
 - View:
 
@@ -131,21 +127,22 @@ fn give_life_to_cell(cell_index: usize);
 
 > The contract also implements _[OpenZeppelin's](https://github.com/OpenZeppelin/cairo-contracts)_ ownable and erc20 components, gaining their storage vars, events, and functions.
 
-## GoL2NFT
+# GoL2NFT
 
 <details>
 
 - [Overview](#overview-1)
 - [Interface](#interface-1)
 - [On-chain Metadata](#on-chain-token-uris)
+- [Whitelist](#whitelist)
 
 </details>
 
-### Overview:
+## Overview:
 
 An ERC-721 contract for players to mint their snapshots in the infinite game.
 
-### Interface:
+## Interface:
 
 - View:
 
@@ -224,9 +221,9 @@ fn whitelist_mint(generation: felt252, state: felt252, timestamp: u64, proof: Ar
 
 > The contract also implements _[OpenZeppelin's](https://github.com/OpenZeppelin/cairo-contracts)_ ownable, erc721 and src5 components, gaining their storage vars, events, and functions.
 
-### On-chain Token URIs:
+## On-chain Token URIs:
 
-This contract generates all token URI data on-chain [here](../tests/contracts/nft/uri/README.md).
+This contract generates all token URI data on-chain.
 
 To see an example, start by running this command to generate the JSON URI:
 
@@ -236,7 +233,7 @@ To see an example, start by running this command to generate the JSON URI:
 
 `Test passed!` means the test matches the expected output; to view it for yourself:
 
-#### Step 1:
+### Step 1:
 
 Paste the URI into your browser to view the JSON data as marketplaces _**should**_; it will look like this:
 
@@ -244,7 +241,7 @@ Paste the URI into your browser to view the JSON data as marketplaces _**should*
 
 _**This should be identical to this [sample json](../tests/contracts/nft/uri/example.json).**_
 
-#### Step 2:
+### Step 2:
 
 To see the image, find the "image" field in the browser JSON object and copy the data. Paste this text into another tab to see the image. It should look like this:
 
@@ -252,6 +249,12 @@ To see the image, find the "image" field in the browser JSON object and copy the
 
 > **_NOTE:_** This step is crucial because the special characters in the SVG URL are double encoded. When the JSON is resolved by the browser, the first layer of encoding is decoded. Pasting this resolved "image" data into the browser then decodes the second set of special characters, ensuring the SVG renders correctly. The resulting SVG should match this _[svg file](../tests/contracts/nft/uri/example.svg)_.
 
-## Deployment
+We use [these scripts](../tests/contracts/nft/uri/README.md) to parse the cairo output.
 
-For migration & deployment instructions, see _[here](../migration/README.md)_
+## Whitelist
+
+Details about the whitelist are _[here](../whitelist/README.md)_.
+
+# Deployment
+
+For migration & deployment instructions, see _[here](../migration/README.md)_.

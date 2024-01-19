@@ -37,8 +37,6 @@ fn whitelist_mint(generation: felt252, state: felt252, timestamp: u64, proof: Ar
 
 4.  We mint the user the token and other necessary steps (increment the total supply & number of times this generation's game_state has been minted and charge the mint fee).
 
-> **_NOTE:_** If any off-chain issues are found in the whitelist, `set_merkle_root()` can be called again by the contract admin with a new root hash.
-
 ## Off-chain:
 
 Using Typescript, the whitelist's root hash was calculated. A bunch of _[these scripts](./scripts/example.ts)_ were used to fetch the proofs for each leaf in the tree.
