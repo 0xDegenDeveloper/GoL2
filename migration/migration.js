@@ -90,6 +90,7 @@ const mockDeploy = async () => {
     constructorCalldata: [cairo0GoL2Hash],
   });
   await provider.waitForTransaction(deployResult.transaction_hash);
+  console.log(`Mock deployed to: ${deployResult.contract_address[0]}\n`);
 
   /// @dev Initialize ERC20 meta, Proxy admin, and evolve the game 3 times
   /// using a multicall (for testing)
@@ -113,7 +114,7 @@ const mockDeploy = async () => {
   ];
   const simulateResult = await account.execute(multicall);
   await provider.waitForTransaction(simulateResult.transaction_hash);
-  console.log(`Mock proxy deployed!`);
+  console.log(`Mock proxy initialized!`);
 
   return deployResult.contract_address[0];
 };
@@ -153,6 +154,7 @@ const migrate = async (golInstanceAddress = null) => {
   ];
   const migrateResult = await account.execute(multicall);
   await provider.waitForTransaction(migrateResult.transaction_hash);
+  console.log(`\nMigration complete!`);
 
   return golAddress;
 };
@@ -185,18 +187,18 @@ const deployNft = async (golAddress = null) => {
   });
   await provider.waitForTransaction(deployResponse.deploy.transaction_hash);
   console.log(
-    `GoL2NFT Deployed!\n\n\t> ${deployResponse.deploy.contract_address}\n`
+    `GoL2NFT deployed to: ${deployResponse.deploy.contract_address}\n`
   );
 
   /// Set GoL2NFT as the snapshotter in GoL2
-  console.log("Setting snapshotter...");
+  console.log("Setting snapshotter...\n");
   const invoke = await new Contract(
     ABIs.newGol.abi,
     golAddress,
     account
   ).invoke("set_snapshotter", [deployResponse.deploy.contract_address]);
   await provider.waitForTransaction(invoke.transaction_hash);
-  console.log(`Snapshotter set!\n`);
+  console.log(`Snapshotter set!`);
 
   return deployResponse.deploy.contract_address;
 };
@@ -239,10 +241,14 @@ function createOutputString(address, nextCommand) {
   const url =
     ENVIRONMENT === "KATANA"
       ? ""
-      : `\nView here: https://${baseUrl}voyager.online/contract/${address}\n\n`;
+      : `\nView here: https://${baseUrl}voyager.online/contract/${address}\n`;
   const nextStep = nextCommand
-    ? `\n- Run: "npm run ${nextCommand} ${address}" to deploy the ${nextCommand} contract.\n`
-    : "Yay done!\n";
+    ? `\n- Run: "npm run ${nextCommand} ${address}" to ${
+        nextCommand === `migrate`
+          ? `migrate the gol contract`
+          : `deploy the nft contract`
+      }.\n`
+    : "\nYay done!\n";
 
   return `${url}${nextStep}`;
 }

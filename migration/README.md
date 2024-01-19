@@ -5,141 +5,30 @@
 1. [Overview](#overview)
 2. [Changes](#changes)
 
-   - [Casing](#casing)
    - [Additional Functions and Storage Variables](#additional-functions-and-storage-variables)
-   - [Packing Logic](#packing-logic)
+   - [Logic](#logic)
+   - [Gas Differences](#gas-differences)
 
-3. [Gas Differences](#gas-differences)
-4. [Migration Breakdown](#migration-breakdown)
-5. [Doing the Migration](#doing-the-migration)
+3. [Breakdown](#breakdown)
+4. [Migration & Deployment](#migration--deployment)
 
 </details>
 
 ## Overview
 
-This directory contains the script to migrate the GoL2 contract.
+The purpose of this migration was to upgrade the current GoL2 contract form Cairo 0 to Cairo 1, and to add additional logic/storage vars for snapshot minting. More on the NFTs _[here](../src/README.md#gol2nft)_.
 
-The purpose of this migration was to upgrade the current GoL2 contract form Cairo 0 to Cairo 1, and to add additional logic/storage vars for snapshot minting. More on the NFTs [here](../src/README.md#gol2nft).
+In the pre-migrated contract, snapshot details (who/when) were not stored on-chain, they were fired through events, only the generation and game-state were stored. To overcome this, the new version of the contract now stores snapshot details in the contract during each infinite game evolution. A Merkle Tree was constructed using all pre-migration event data to verify pre-migration snapshot ownership (details _[here](../whitelist/README.md)_).
 
-In the pre-migrated contract, snapshot details (who/when) were not stored on-chain, they were fired through events, only the generation and game_state were stored. To overcome this, the new version of the contract now stores snapshot details in the contract during each infinite game evolution. A merkle tree was constructed using all pre-migration event data to verify pre-migration snapshot ownership.
-
-When a user successfully whitelist mints a pre-migration generation, the snapshot details are then added to the GoL2 contract. Other changes from the migration are discussed below.
+When a user successfully whitelist mints a pre-migration generation, the snapshot details are then added to the GoL2 contract. Other changes from the migration are discussed below:
 
 ## Changes
 
-### Casing
-
-Back in the Cairo 0 days there were conflicts with the casing for function and event names. Contracts implementing Ethereum standards (ERC-20, ERC-721, etc.) used the same casing for naming events & functions as they are on Ethereum (both CamelCase); all other Cairo functions & events were named using snake_case.
-
-Now in Cairo 1, the standard is to use snake_casing for all function names, and CamelCasing for all event names. The following changes were made to the contract:
-
-#### Events
-
-All of these previous GoL2 events:
-
-```bash
-game_created {
-    user_id: felt,
-    game_id : felt,
-    state : felt
-}
-
-game_evolved {
-    user_id : felt,
-    game_id : felt,
-    generation : felt,
-    state : felt
-}
-
-cell_revived{
-    user_id : felt,
-    generation : felt,
-    cell_index : felt,
-    state : felt
-}
-```
-
-had their names and members updated like so:
-
-```bash
-GameCreated {
-    #[key]
-    user_id: ContractAddress,
-    game_id: felt252,
-    state: felt252,
-}
-
-GameEvolved {
-    #[key]
-    user_id: ContractAddress,
-    #[key]
-    game_id: felt252,
-    generation: felt252,
-    state: felt252,
-}
-
-CellRevived {
-    #[key]
-    user_id: ContractAddress,
-    generation: felt252,
-    cell_index: usize,
-    state: felt252,
-}
-```
-
-**_The `#[key]` property is similar to Ethereum's `indexed` keyword making it easier to filter events more specifically by the member it is defined above (more [here](https://book.cairo-lang.org/ch99-01-03-03-contract-events.html)). `ContractAddress` is a new Struct in Cairo 1 for contracts & user addresses, `felt252` & `u256` are the Cairo 1 ways of saying `felt` & `Uint256`, and `usize` is another way of saying `u32`._**
-
-**_ERC-20 Events were already defined with CamelCasing, so there were no changes there._**
-
-#### Functions
-
-All of these previous GoL2 functions:
-
-```
-* Reads
-
-totalSupply() -> Uint256
-
-balanceOf(owner: felt) -> Uint256
-
-
-* Writes
-
-transferFrom(owner: felt, recipient: felt, amount: Uint256)
-
-increaseAllowance(spender: felt, added_value: Uint256)
-
-decreaseAllowance(spender: felt, subtracted_value: Uint256)
-```
-
-had their names and parameters updated like so:
-
-```
-* Reads
-
-total_supply() -> u256
-
-balance_of(owner: felt252) -> u256
-
-
-* Writes
-
-transfer_from(owner: felt252, recipient: felt252, amount: u256)
-
-increase_allowance(spender: felt252, added_value: u256)
-
-decrease_allowance(spender: felt252, subtracted_value: u256)
-```
-
-**_This only effects the ERC-20 functions of the contract; other functions such as view_game() & give_life_to_cell() were already defined correctly._**
-
-**_All other ERC20 functions have similar changes to their parameter types: felts, uints, addresses, etc._**
-
 ### Additional Functions and Storage Variables
 
-The following elements were added to the new contract:
+The following elements were added to the Cairo 1 version of the contract:
 
-#### Storage vars
+- Storage vars:
 
 ```
 is_migrated: bool,
@@ -151,7 +40,7 @@ is_snapshotter: LegacyMap<ContractAddress, bool>,
 migration_generation_marker: felt252,
 ```
 
-#### Functions
+- Functions:
 
 ```
 /// Reads
@@ -174,11 +63,11 @@ fn add_snapshot(
     ) -> bool;
 ```
 
-### Packing Logic
+### Logic
 
 In Cairo 0 there was no looping or u256 primatives, and was a much lower-level language in general. The upgraded contract takes advantage of these lacking features; now there are no recursive functions and the game state can easily be converted from felt252 to u256 & back, making the packing/unpacking logic simpler.
 
-## Gas Differences
+### Gas Differences
 
 View gas differences by running:
 
@@ -194,17 +83,17 @@ Each output will be similar to:
 
 [DEBUG] old             (raw: 0x6f6c64
 
-[DEBUG]                 (raw: 0x1a734
+[DEBUG]                 (raw: 0x1a734   * here
 
 [DEBUG] new             (raw: 0x6e6577
 
-[DEBUG]                 (raw: 0x73a0
+[DEBUG]                 (raw: 0x73a0    * and here
 
 ```
 
 Where `0x1a734` is the Cairo 0 `evolve()` gas usage, and `0x73a0` is the Cairo 1 `evolve()` gas usage.
 
-## Migration Breakdown
+## Breakdown
 
 The previous GoL2 contract implemented [OpenZeppelin's proxy]() set up to allow for future contract upgrades. In the new Cairo, we can upgrade a contract's implementation hash directly with a syscall, omitting the need for a proxy setup. This makes migrating the previous contract a 2-step process:
 
@@ -228,16 +117,110 @@ GoL2::migrate(new_class_hash: felt252)
 
 This will call `replace_class_syscall(new_class_hash)`, finalizing the contract to its upgradeable, non-proxy, Cairo 1 implementation.
 
-## Doing the Migration
+## Migration & Deployment
 
-First, build the contracts:
+### Testing
+
+To test the contracts you will need _[scarb (>= 2.3.1)](https://docs.swmansion.com/scarb/)_ and _[starknet-foundry (>= 0.12.0)](https://foundry-rs.github.io/starknet-foundry/getting-started/installation.html)_.
+
+Run the test suite via:
 
 ```
-scarb build
+snforge test
 ```
 
-(todo: add confirmation script to check class hashes match expected)
+This repo provides a migration & deployment walkthrough for either a local Katana node, the Goerli testnet, or Mainnet.
 
-(todo: put finalzied class-hash here for docs)
+To start, copy the contents from the _.env.example_ file and paste them into a new file named _.env_ (in the same root directory).
 
-(todo) env.example, setup npm script
+- Replace the **WALLET_ADDRESS** & **PRIVATE_KEY** fields with your details.
+
+- Replace **ENVIRONMENT** with the environment you wish to run in. The options are "KATANA" | "GOERLI" | "MAINNET".
+
+### Migration Walkthrough
+
+Make sure you have _[node](https://nodejs.org/en/download)_ installed (we are using v16.13.1 but the actual minimum version is not known at this time).
+
+Install the dependencies:
+
+```
+npm install
+```
+
+### Katana
+
+If you wish to skip directly to Goerli & Mainnnet deployment, skip these steps.
+
+First install Katana:
+
+```
+curl -L https://install.dojoengine.org | bash
+```
+
+> Official installation guide _[here](https://book.dojoengine.org/getting-started/quick-start.html)_
+
+Once Katana is installed, run a Goerli fork in a background terminal:
+
+```
+katana --rpc-url https://starknet-testnet.public.blastapi.io/rpc/v0.5
+```
+
+> **_NOTE:_** The reason we are running a Goerli fork and not a clean Katana node is to use the official Cairo 0 implementation hashes (proxy & GoL2), and not re-declare them ourselves.
+
+- Deploy a Cairo 0 GoL2 instance with your wallet as the admin:
+
+```
+npm run mock
+```
+
+- Migrate the contract from Cairo 0 to 1:
+
+```
+npm run migrate <freshly deployed GoL2 contract address>
+```
+
+- Deploy a GoL2NFT contract linked to the GoL2 contract:
+
+```
+npm run nft <same freshly deployed GoL2 contract address>
+```
+
+### Goerli
+
+Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "GOERLI".
+
+- Deploy a Cairo 0 GoL2 instance with your wallet as the admin:
+
+```
+npm run mock
+```
+
+- Migrate the contract from Cairo 0 to 1:
+
+```
+npm run migrate <freshly deployed GoL2 contract address>
+```
+
+- Deploy a GoL2NFT contract linked to the GoL2 contract:
+
+```
+npm run nft <same freshly deployed GoL2 contract address>
+```
+
+### Mainnet
+
+Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "MAINNET", and check that the wallet address and private key are the ones for the admin wallet.
+
+> The wallet address for admin is: 0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973
+
+- Migrate the contract from Cairo 0 to 1:
+
+```
+npm run migrate 0x06a05844a03bb9e744479e3298f54705a35966ab04140d3d8dd797c1f6dc49d0
+```
+
+- Deploy the GoL2NFT contract linked to the GoL2 contract:
+
+```
+npm run nft 0x06a05844a03bb9e744479e3298f54705a35966ab04140d3d8dd797c1f6dc49d0
+```
