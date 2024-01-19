@@ -2,10 +2,6 @@ import { num } from "starknet";
 import { MerkleTree } from "merkletreejs";
 import { poseidonHashMany } from "@scure/starknet";
 import { bytesToNumberBE, numberToBytesBE } from "@noble/curves/abstract/utils";
-import * as fs from "fs";
-// import * as rawData from "./fork_whitelist.json";
-// import * as rawData from "./test_rm.json";
-// import * as rawData from "./whitelist-prod.json";
 
 export type Snapshot = {
   user_id: string;
@@ -123,29 +119,3 @@ export const makeKeys = (start: number, end: number): string[] => {
     (start + index).toString()
   );
 };
-
-/**
- * Demonstrate helper functions using mock whitelist data.
- */
-// const data: DataStructure = rawData;
-// console.log("data parsed");
-
-// const tree = createTree(data);
-// console.log("tree created");
-
-// const generations = Object.keys(data);
-// console.log("generations gathered");
-
-// const proofs = getProofs(tree, generations);
-
-// let output: any = {};
-
-// proofs.map((proof, i) => {
-//   output[i + 1] = proof;
-// });
-
-// const outputFile = "./whitelist/proofs.json";
-
-// fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
-
-// console.log("output file created");
