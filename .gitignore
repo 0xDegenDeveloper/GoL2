@@ -1,7 +1,4 @@
-target
-.DS_Store
-.snfoundry_cache/
 node_modules
 .env
-.tool-versions
-whitelist/proofs
+.DS_Store
+.snfoundry_cache/
