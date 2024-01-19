@@ -19,7 +19,6 @@ sierra = true
 casm = true
 sierra-text = true
 
-[[target.starknet-contract]]
 [lib]
 sierra = true
 

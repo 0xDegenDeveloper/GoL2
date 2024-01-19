@@ -1,6 +1,14 @@
 # Contracts
 
-## GoL2 <a name="gol2"></a>
+<details>
+
+- [GoL2](#gol2)
+- [GoL2NFT](#gol2nft)
+- [Deployment](#deployment)
+
+</details>
+
+## GoL2
 
 <details>
 
@@ -11,7 +19,7 @@
 
 ### Overview:
 
-This is an ERC-20 contract that also handles the logic and storage for both game modes:
+An ERC-20 contract that handles the logic and storage for both game modes:
 
 - Infinite:
 
@@ -27,7 +35,7 @@ This is an ERC-20 contract that also handles the logic and storage for both game
 
 ### Interface:
 
-#### View:
+- View:
 
 ```
 /// Get the game state at a given generation.
@@ -44,6 +52,7 @@ fn get_current_generation(game_id: felt252) -> felt252;
 ```
 /// Get the snapshotter
 /// @dev The snapshotter is the contract allowed to create snapshots of the infinite game.
+/// @dev Allows the GoL2NFT contract to store pre-migration snapshots.
 
 fn snapshotter() -> ContractAddress;
 ```
@@ -54,9 +63,9 @@ fn snapshotter() -> ContractAddress;
 fn view_snapshot(generation: felt252) -> GoL2::Snapshot;
 ```
 
-> **_A snapshot is a capture of an evolution, if a cell is revived during a generation, this is not recorded in the snapshot, only its original state, creator & timestamp are._**
+> A snapshot is a capture of an evolution, if a cell is revived during a generation, this is not recorded in the snapshot, only its original state, creator & timestamp are.
 
-#### External (only-owner):
+- External (only-owner):
 
 ```
 /// Migrate the contract from the old proxy implementation.
@@ -82,7 +91,7 @@ fn upgrade(new_class_hash: ClassHash);
 fn set_snapshotter(user: ContractAddress);
 ```
 
-#### External (only-snapshotters):
+- External (only-snapshotter):
 
 ```
 /// Add a snapshot of a generation to the contract.
@@ -98,7 +107,7 @@ fn add_snapshot(
   ) -> bool;
 ```
 
-#### External (public):
+- External (public):
 
 ```
 /// Create a new creator mode game.
@@ -120,7 +129,7 @@ fn evolve(game_id: felt252);
 fn give_life_to_cell(cell_index: usize);
 ```
 
-> **_The contract also implements [OpenZeppelin's](https://github.com/OpenZeppelin/cairo-contracts) ownable and erc20 components, gaining their storage vars, events, and functions._**
+> The contract also implements _[OpenZeppelin's](https://github.com/OpenZeppelin/cairo-contracts)_ ownable and erc20 components, gaining their storage vars, events, and functions.
 
 ## GoL2NFT
 
@@ -129,17 +138,16 @@ fn give_life_to_cell(cell_index: usize);
 - [Overview](#overview-1)
 - [Interface](#interface-1)
 - [On-chain Metadata](#on-chain-token-uris)
-- [Deployment](#deployment)
 
 </details>
 
 ### Overview:
 
-This is an ERC-721 contract for players to mint their snapshots in the infinite GoL2 game.
+An ERC-721 contract for players to mint their snapshots in the infinite game.
 
 ### Interface:
 
-#### View:
+- View:
 
 ```
 /// Get the merkle root of the whitelist.
@@ -159,7 +167,7 @@ fn mint_price() -> u256;
 fn mint_token_address() -> ContractAddress;
 ```
 
-#### External (only-owner):
+- External (only-owner):
 
 ```
 /// Upgrade the contract to the new implementation hash.
@@ -193,7 +201,7 @@ fn set_mint_token_address(new_addr: ContractAddress);
 fn withdraw(token_addr: ContractAddress, amount: u256, to: ContractAddress);
 ```
 
-#### External (public):
+- External (public):
 
 ```
 /// Mint a token to the caller if they are the generation's owner.
@@ -212,9 +220,9 @@ fn mint(generation: felt252);
 fn whitelist_mint(generation: felt252, state: felt252, timestamp: u64, proof: Array<felt252>);
 ```
 
-> **_Details about the whitelist are [here](../whitelist/README.md)._**
+> Details about the whitelist are _[here](../whitelist/README.md)_.
 
-> **_The contract also implements [OpenZeppelin's](https://github.com/OpenZeppelin/cairo-contracts) ownable, erc721 and src5 components, gaining their storage vars, events, and functions._**
+> The contract also implements _[OpenZeppelin's](https://github.com/OpenZeppelin/cairo-contracts)_ ownable, erc721 and src5 components, gaining their storage vars, events, and functions.
 
 ### On-chain Token URIs:
 
@@ -222,11 +230,11 @@ This contract generates all token URI data on-chain [here](../tests/contracts/nf
 
 To see an example, start by running this command to generate the JSON URI:
 
-`npm run test_uri`.
+`npm run uri`.
 
-> **_NOTE: This command runs `python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py` from the root directory. You may need to use a different python command to run the script depending on your machine._**
+> **_NOTE:_** This command runs `python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py` from the root directory. You may need to use a different python command to run the script depending on your machine.
 
-`Test passed!` means the test matches the expected output; to view it for yourself see below:
+`Test passed!` means the test matches the expected output; to view it for yourself:
 
 #### Step 1:
 
@@ -238,37 +246,12 @@ _**This should be identical to this [sample json](../tests/contracts/nft/uri/exa
 
 #### Step 2:
 
-To see the image, find the "image" field in this browser JSON and copy the data. Paste this text into the browser to see the image. It should look like this:
+To see the image, find the "image" field in the browser JSON object and copy the data. Paste this text into another tab to see the image. It should look like this:
 
 `data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org...width=%225%22/%3E%3C/g%3E%3C/svg%3E`.
 
-> **_NOTE: This step is crucial because the special characters in the SVG URL are double encoded. When the JSON is resolved by the browser, the first layer of encoding is decoded. Pasting this resolved 'image' data into the browser then decodes the second set of special characters, ensuring the SVG renders correctly. The resulting SVG should match this [svg file](../tests/contracts/nft/uri/example.svg)._**
+> **_NOTE:_** This step is crucial because the special characters in the SVG URL are double encoded. When the JSON is resolved by the browser, the first layer of encoding is decoded. Pasting this resolved "image" data into the browser then decodes the second set of special characters, ensuring the SVG renders correctly. The resulting SVG should match this _[svg file](../tests/contracts/nft/uri/example.svg)_.
 
-### Deployment
+## Deployment
 
-The GoL2 contract was already deployed ~2 years ago, so no (re-)deployment steps were necessary (see [migration](../migration/README.md)).
-
-To deploy the GoL2NFT contract using `sncast` we first declare the class hash using:
-
-```
-sncast -p goerli declare --contract-name GoL2NFT
-```
-
-After this txn is confirmed, we can deploy an instance of the contract using:
-
-```
-sncast -p goerli deploy --class-hash <A> -c 0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973 0x47616D65206F66204C696665204E4654 0x476F4C324E4654 <B> <C> 1 0 <D>
-```
-
-Where -c denotes the constructor args:
-
-- `0x03e61a95b01cb7d4b56f406ac2002fab15fb8b1f9b811cdb7ed58a08c7ae8973` - The contract admin.
-- `0x47616D65206F66204C696665204E4654` - The collection name.
-- `0x476F4C324E4654` - The collection symbol.
-- `<B>` - The GoL2 contract address.
-- `<C>` - The payment token's contract address.
-- `1` - The mint fee (u256.low).
-- `0` - The mint fee (u256.high).
-- `<D>` - The whitelist root hash.
-
-This deployment takes place during the migration multi-call [here](../migration/README.md).
+For migration & deployment instructions, see _[here](../migration/README.md)_
