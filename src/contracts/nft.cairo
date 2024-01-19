@@ -283,9 +283,10 @@ mod GoL2NFT {
     impl InternalImpl of InternalTrait {
         /// Charge the user to mint.
         fn charge_user(ref self: ContractState) {
+            /// @dev Using CamelCase for call because both payment token options still impl it.
             assert(
                 ERC20ABIDispatcher { contract_address: self.mint_token_addr.read() }
-                    .transfer_from(
+                    .transferFrom(
                         get_caller_address(), get_contract_address(), self.mint_price.read()
                     ),
                 'GoL2NFT: Payment failed'
