@@ -141,7 +141,7 @@ katana --rpc-url https://starknet-testnet.public.blastapi.io/rpc/v0.5
 
 > **_NOTE:_** The reason we are running a Goerli fork and not a clean Katana node is to use the official Cairo 0 implementation hashes (proxy & GoL2), and not re-declare them ourselves.
 
-The steps for Goerli and Katana are the same, just make sure you adjust your _.env_ file **ENVIRONMENT** variable to appropriately.
+The steps for Goerli and Katana are the same, just make sure you adjust your _.env_ file **ENVIRONMENT** variable appropriately.
 
 ### Goerli
 
