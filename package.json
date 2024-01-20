@@ -11,7 +11,9 @@
     "uri": "python3 ./tests/contracts/nft/uri/nft_uri_and_svg.py",
     "mock": "node ./migration/migration.js MOCK",
     "migrate": "node ./migration/migration.js MIGRATE",
-    "nft": "node ./migration/migration.js NFT"
+    "nft": "node ./migration/migration.js NFT",
+    "mock_whitelist": "ts-node whitelist/mock_creation.ts",
+    "mint_helper": "node ./migration/migration.js MINT_HELPER"
   },
   "repository": {
     "type": "git",

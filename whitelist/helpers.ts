@@ -89,15 +89,13 @@ export const createTree = (data: DataStructure): MerkleTree => {
  * @returns The proof as an array of strings representing felt252s.
  */
 
-let i = 1;
 const getProof = (
   tree: MerkleTree,
   generation: string,
   data: DataStructure
 ): string[] => {
   const proof = tree.getHexProof(getHashedLeaf(generation, data));
-  console.log("proof", i, "fetched");
-  i++;
+  console.log("proof", generation, "fetched");
   return proof;
 };
 

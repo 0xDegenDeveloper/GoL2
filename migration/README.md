@@ -7,7 +7,6 @@
 
    - [Additional Functions and Storage Variables](#additional-functions-and-storage-variables)
    - [Logic](#logic)
-   - [Gas Differences](#gas-differences)
 
 3. [Breakdown](#breakdown)
 4. [Migration & Deployment](#migration--deployment)
@@ -35,7 +34,7 @@ is_migrated: bool,
 
 snapshots: LegacyMap<felt252, Snapshot>,
 
-is_snapshotter: LegacyMap<ContractAddress, bool>,
+snapshotter: ContractAddress,
 
 migration_generation_marker: felt252,
 ```
@@ -45,9 +44,10 @@ migration_generation_marker: felt252,
 ```
 /// Reads
 
-fn is_snapshotter(user: ContractAddress) -> bool;
+fn snapshotter() -> ContractAddress;
 
 fn view_snapshot(generation: felt252) -> Snapshot
+
 
 /// Writes
 
@@ -55,7 +55,7 @@ fn initializer();
 
 fn migrate(new_class_hash: ClassHash);
 
-fn set_snapshotter(user: ContractAddress, is_snapshotter: bool);
+fn set_snapshotter(user: ContractAddress);
 
 fn add_snapshot(
         generation: felt252, user_id: ContractAddress,
@@ -67,35 +67,9 @@ fn add_snapshot(
 
 In Cairo 0 there was no looping or u256 primatives, and was a much lower-level language in general. The upgraded contract takes advantage of these lacking features; now there are no recursive functions and the game state can easily be converted from felt252 to u256 & back, making the packing/unpacking logic simpler.
 
-### Gas Differences
-
-View gas differences by running:
-
-```
-snforge test gas --ignored
-```
-
-Each output will be similar to:
-
-```
-
-[DEBUG] evolve          (raw: 0x65766f6c7665
-
-[DEBUG] old             (raw: 0x6f6c64
-
-[DEBUG]                 (raw: 0x1a734   * here
-
-[DEBUG] new             (raw: 0x6e6577
-
-[DEBUG]                 (raw: 0x73a0    * and here
-
-```
-
-Where `0x1a734` is the Cairo 0 `evolve()` gas usage, and `0x73a0` is the Cairo 1 `evolve()` gas usage.
-
 ## Breakdown
 
-The previous GoL2 contract implemented [OpenZeppelin's proxy](https://github.com/OpenZeppelin/cairo-contracts/blob/release-0.2.0/src/openzeppelin/upgrades/Proxy.cairo) set up to allow for future contract upgrades. In the new Cairo, we can upgrade a contract's implementation hash directly with a syscall, omitting the need for a proxy setup. This makes migrating the previous contract a 2-step process:
+The previous GoL2 contract implemented [OpenZeppelin's proxy](https://github.com/OpenZeppelin/cairo-contracts/blob/release-0.2.0/src/openzeppelin/upgrades/Proxy.cairo) set up to allow for future contract upgrades. In the Cairo 1, we can upgrade a contract's implementation hash directly with a syscall, omitting the need for a proxy setup. This makes migrating the previous contract a 2-step process:
 
 ### Step 1:
 
@@ -115,7 +89,7 @@ To remove this proxy setup, we will call:
 GoL2::migrate(new_class_hash: felt252)
 ```
 
-This will call `replace_class_syscall(new_class_hash)`, finalizing the contract to its upgradeable, non-proxy, Cairo 1 implementation.
+This will call `replace_class_syscall(new_class_hash)`, finalizing the contract to its upgradeable, non-proxy, Cairo 1 implementation. This process is done in a single multicall, more details below.
 
 ## Migration & Deployment
 
@@ -167,29 +141,13 @@ katana --rpc-url https://starknet-testnet.public.blastapi.io/rpc/v0.5
 
 > **_NOTE:_** The reason we are running a Goerli fork and not a clean Katana node is to use the official Cairo 0 implementation hashes (proxy & GoL2), and not re-declare them ourselves.
 
-- Deploy a Cairo 0 GoL2 instance with your wallet as the admin:
-
-```
-npm run mock
-```
-
-- Migrate the contract from Cairo 0 to 1:
-
-```
-npm run migrate <freshly deployed GoL2 contract address>
-```
-
-- Deploy a GoL2NFT contract linked to the GoL2 contract:
-
-```
-npm run nft <same freshly deployed GoL2 contract address>
-```
+The steps for Goerli and Katana are the same, just make sure you adjust your _.env_ file **ENVIRONMENT** variable to appropriately.
 
 ### Goerli
 
-Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "GOERLI".
+Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "GOERLI" | "KATANA".
 
-- Deploy a Cairo 0 GoL2 instance with your wallet as the admin:
+- Deploy a Cairo 0 GoL2 instance with your wallet as the admin and evolve the game 3 times:
 
 ```
 npm run mock
@@ -204,8 +162,54 @@ npm run migrate <freshly deployed GoL2 contract address>
 - Deploy a GoL2NFT contract linked to the GoL2 contract:
 
 ```
-npm run nft <same freshly deployed GoL2 contract address>
+npm run nft <same GoL2 contract address>
 ```
+
+- Generate a mock whitelist for the 3 pre-migration evolutions mentioned above:
+
+```
+npm run mock_whitelist <freshly deployed GoL2NFT contract address>
+```
+
+- Set the whitelist root hash in the GoL2NFT contract, and give it an allowance for spending your tokens (for mint fees).
+
+```
+npm run mint_helper <same GoL2NFT contract address> <mock root hash>
+```
+
+To test that whitelist minting is working as expected (Goerli), visit your GoL2NFT contract on a block-explorer, and look for the `whitelist_mint()` write function. Use these values, along with the outputted proofs to succesfully whitelist mint:
+
+```
+generation: 2,
+
+state: 0x100030006e0000000000000000000000000000,
+
+timestamp: 2222,
+
+----------------------------------------------------------------
+
+generation: 3,
+
+state: 0x18004a00740008000000000000000000000000,
+
+timestamp: 3333,
+
+----------------------------------------------------------------
+
+generation: 4,
+
+state: 0x18004800760050000000000000000000000000,
+
+timestamp: 4444,
+```
+
+Now that your GoL2 contract has been migrated, evolve the infinite game once again. Do this by calling the evolve function for this game_id:
+
+```
+0x7300100008000000000000000000000000
+```
+
+If the migration & deployment were successful, the first post-migration evolution will start at generation 5. To mint this snapshot, go back to the GoL2NFT contract, and pass `5` into the `mint()` function.
 
 ### Mainnet
 

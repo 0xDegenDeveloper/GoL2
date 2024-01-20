@@ -180,7 +180,7 @@ const deployNft = async (golAddress = null) => {
       "0x476F4C324E4654", // "GoL2NFT"
       golAddress,
       ENVIRONMENT == "MAINNET" ? ADDRESSES.usdc : ADDRESSES.eth, // cost is 1 USDC on mainnet, 0.000000001 ETH on goerli
-      ENVIRONMENT == "MAINNET" ? 1 : 1000000000, // 1 USDC on mainnet, 1 gwei (10^-9 ether) on goerli
+      ENVIRONMENT == "MAINNET" ? 1000000 : 1000000000, // 1.000000 USDC on mainnet, 1 gwei (10^-9 ether) on goerli
       0,
       "0x0595d834a768d680188fce9858f850eeaf8926f86b54238e30fecc53f6317962", // root hash, todo: update when wl complete
     ],
@@ -203,54 +203,92 @@ const deployNft = async (golAddress = null) => {
   return deployResponse.deploy.contract_address;
 };
 
+/**
+ * Set the mock root hash and allowance for the GoL2NFT contract.
+ * @param {String} nftAddress - The address of the GoL2NFT contract to set the mock root hash for and give an allowance to.
+ * @param {String} rootHash - The root hash to set.
+ * @returns The address of the GoL2NFT contract.
+ */
+const setMockRootHashAndAllowance = async (
+  nftAddress = null,
+  rootHash = null
+) => {
+  if (nftAddress == null || rootHash == null)
+    throw new Error("No nft address provided!");
+
+  console.log("Setting mock root hash and allowance...\n");
+
+  const nft = new Contract(ABIs.nft.abi, nftAddress, account);
+  /// @dev Using gol abi because it is erc20
+  const paymentToken = new Contract(
+    ABIs.newGol.abi,
+    ENVIRONMENT === "MAINNET" ? ADDRESSES.usdc : ADDRESSES.eth,
+    account
+  );
+
+  const multicall = [
+    nft.populate("set_merkle_root", [rootHash]),
+    paymentToken.populate("approve", [nftAddress, "10000000000"]),
+  ];
+
+  const multicallResult = await account.execute(multicall);
+  await provider.waitForTransaction(multicallResult.transaction_hash);
+  console.log(`Root hash and allowance set!`);
+
+  return nftAddress;
+};
+
 async function main() {
   try {
     const command = process.argv[2];
+    const baseUrl = `https://${
+      ENVIRONMENT === "MAINNET" ? "" : "goerli."
+    }voyager.online/contract/`;
+
+    let explorerCommand;
+    let linkAddress;
+    let nextCommand;
+
     switch (command) {
       case "MOCK":
-        console.log(createOutputString(await mockDeploy(), "migrate"));
+        linkAddress = await mockDeploy();
+        explorerCommand = `View here: `;
+        nextCommand = `- Run: "npm run migrate ${linkAddress}" to migrate the GoL2 contract.`;
         break;
       case "MIGRATE":
-        console.log(createOutputString(await migrate(process.argv[3]), "nft"));
+        linkAddress = await migrate(process.argv[3]);
+        explorerCommand = `View here: `;
+        nextCommand = `- Run: "npm run nft ${linkAddress}" to deploy the GoL2NFT contract.`;
         break;
       case "NFT":
-        console.log(createOutputString(await deployNft(process.argv[3]), null));
+        linkAddress = await deployNft(process.argv[3]);
+        explorerCommand = `View here:`;
+        nextCommand = `- Run: "npm run mock_whitelist ${linkAddress}" to create the mock whitelist for your contract.`;
+        break;
+      case "MINT_HELPER":
+        linkAddress = await setMockRootHashAndAllowance(
+          process.argv[3],
+          process.argv[4]
+        );
+        explorerCommand = `Try minting here:`;
+        nextCommand = "Yay done !";
         break;
       default:
         console.log("Invalid command. Use MOCK, MIGRATE, or NFT.");
     }
+
+    console.log(
+      `${
+        ENVIRONMENT === "KATANA"
+          ? ``
+          : `\n${explorerCommand} ${baseUrl}${linkAddress}\n`
+      }\n${nextCommand}\n`
+    );
   } catch (error) {
     console.error(`Operation failed! Reason: ${error.message}`);
   } finally {
     process.exit(0);
   }
-}
-
-/**
- * Create output string to guide user through the migration process.
- * @param {String} address - The address to provide a blockscanner link to.
- * @note There is no blockscanner link when using Katana. Can just view in shell.
- * @param {String} nextCommand - The next command to run.
- * @note If nextCommand is null, then we are done.
- * @note If nextCommand not, then we need to instruct the
- * user to run the next command.
- * @returns The output string.
- */
-function createOutputString(address, nextCommand) {
-  const baseUrl = ENVIRONMENT === "MAINNET" ? "" : "goerli.";
-  const url =
-    ENVIRONMENT === "KATANA"
-      ? ""
-      : `\nView here: https://${baseUrl}voyager.online/contract/${address}\n`;
-  const nextStep = nextCommand
-    ? `\n- Run: "npm run ${nextCommand} ${address}" to ${
-        nextCommand === `migrate`
-          ? `migrate the gol contract`
-          : `deploy the nft contract`
-      }.\n`
-    : "\nYay done!\n";
-
-  return `${url}${nextStep}`;
 }
 
 main();
