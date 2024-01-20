@@ -103,6 +103,8 @@ Run the test suite via:
 snforge test
 ```
 
+### Migration Walkthrough
+
 This repo provides a migration & deployment walkthrough for either a local Katana node, the Goerli testnet, or Mainnet.
 
 To start, copy the contents from the _.env.example_ file and paste them into a new file named _.env_ (in the same root directory).
@@ -110,8 +112,6 @@ To start, copy the contents from the _.env.example_ file and paste them into a n
 - Replace the **WALLET_ADDRESS** & **PRIVATE_KEY** fields with your details.
 
 - Replace **ENVIRONMENT** with the environment you wish to run in. The options are "KATANA" | "GOERLI" | "MAINNET".
-
-### Migration Walkthrough
 
 Make sure you have _[node](https://nodejs.org/en/download)_ installed (we are using v16.13.1 but the actual minimum version is not known at this time).
 
