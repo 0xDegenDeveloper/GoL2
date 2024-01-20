@@ -25,7 +25,7 @@ When a user successfully whitelist mints a pre-migration generation, the snapsho
 
 ### Additional Functions and Storage Variables
 
-The following elements were added to the Cairo 1 version of the contract:
+The following elements were added in the Cairo 1 version of the contract:
 
 - Storage vars:
 
