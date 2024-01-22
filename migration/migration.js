@@ -89,7 +89,8 @@ const mockDeploy = async () => {
     classHash: cario0ProxyHash,
     constructorCalldata: [cairo0GoL2Hash],
   });
-  await provider.waitForTransaction(deployResult.transaction_hash);
+  if (deployResult.transaction_hash)
+    await provider.waitForTransaction(deployResult.transaction_hash);
   console.log(`Mock deployed to: ${deployResult.contract_address[0]}\n`);
 
   /// @dev Initialize ERC20 meta, Proxy admin, and evolve the game 3 times
@@ -165,6 +166,7 @@ const migrate = async (golInstanceAddress = null) => {
  * @returns The address of the GoL2NFT contract.
  */
 const deployNft = async (golAddress = null) => {
+  golAddress = ENVIRONMENT == "MAINNET" ? ADDRESSES.gol : golAddress;
   if (golAddress == null) {
     throw new Error("No GoL2 address provided!");
   }
