@@ -74,7 +74,7 @@ export const createTree = (data: DataStructure): MerkleTree => {
     },
     /// @dev Fills the extra leaves with 0x0 to complete the Tree.
     fillDefaultHash: (): Buffer => {
-      return Buffer.from([0x0]); // todo check if need to go back to num.toBigInt(0x0)
+      return Buffer.from([0x0]);
     },
     /// @dev Sorts the leaves to ensure the logic matches Alexandria's implementation.
     /// @dev Located here: https://github.com/keep-starknet-strange/alexandria/blob/main/src/merkle_tree/README.md

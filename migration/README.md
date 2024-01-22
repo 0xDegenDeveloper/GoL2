@@ -25,7 +25,7 @@ When a user successfully whitelist mints a pre-migration generation, the snapsho
 
 ### Additional Functions and Storage Variables
 
-The following elements were added to the Cairo 1 version of the contract:
+The following elements were added in the Cairo 1 version of the contract:
 
 - Storage vars:
 
@@ -103,6 +103,8 @@ Run the test suite via:
 snforge test
 ```
 
+### Migration Walkthrough
+
 This repo provides a migration & deployment walkthrough for either a local Katana node, the Goerli testnet, or Mainnet.
 
 To start, copy the contents from the _.env.example_ file and paste them into a new file named _.env_ (in the same root directory).
@@ -110,8 +112,6 @@ To start, copy the contents from the _.env.example_ file and paste them into a n
 - Replace the **WALLET_ADDRESS** & **PRIVATE_KEY** fields with your details.
 
 - Replace **ENVIRONMENT** with the environment you wish to run in. The options are "KATANA" | "GOERLI" | "MAINNET".
-
-### Migration Walkthrough
 
 Make sure you have _[node](https://nodejs.org/en/download)_ installed (we are using v16.13.1 but the actual minimum version is not known at this time).
 
@@ -141,7 +141,7 @@ katana --rpc-url https://starknet-testnet.public.blastapi.io/rpc/v0.5
 
 > **_NOTE:_** The reason we are running a Goerli fork and not a clean Katana node is to use the official Cairo 0 implementation hashes (proxy & GoL2), and not re-declare them ourselves.
 
-The steps for Goerli and Katana are the same, just make sure you adjust your _.env_ file **ENVIRONMENT** variable to appropriately.
+The steps for Goerli and Katana are the same, just make sure you adjust your _.env_ file **ENVIRONMENT** variable appropriately.
 
 ### Goerli
 
