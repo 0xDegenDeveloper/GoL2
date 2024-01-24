@@ -240,6 +240,71 @@ const setMockRootHashAndAllowance = async (
   return nftAddress;
 };
 
+const mainnetMocksForTesting = async () => {
+  if (ENVIRONMENT != "MAINNET")
+    throw new Error("This is only for mainnet testing!");
+
+  /// Declare and deploy GoL2
+  console.log("Deploying GoL2...\n");
+  const deployResponse = await account.declareAndDeploy({
+    contract: ABIs.newGol,
+    casm: CASM.newGol,
+    constructorCalldata: [account.address],
+  });
+  await provider.waitForTransaction(deployResponse.deploy.transaction_hash);
+  console.log(`GoL2 deployed to: ${deployResponse.deploy.contract_address}\n`);
+
+  console.log("Deploying GoL2NFT...\n");
+  const deployResponse2 = await account.declareAndDeploy({
+    contract: ABIs.nft,
+    casm: CASM.nft,
+    constructorCalldata: [
+      account.address,
+      "0x47616D65206F66204C696665204E4654", // "Game of Life NFT"
+      "0x476F4C324E4654", // "GoL2NFT"
+      deployResponse.deploy.contract_address,
+      ADDRESSES.eth, // cost: 0.000000001 ETH
+      1000000000, // cost: 1 gwei (10^-9 ether)
+      0,
+      "0x0595d834a768d680188fce9858f850eeaf8926f86b54238e30fecc53f6317962", // root hash, todo: update when wl complete
+    ],
+  });
+  await provider.waitForTransaction(deployResponse2.deploy.transaction_hash);
+  console.log(
+    `GoL2NFT deployed to: ${deployResponse2.deploy.contract_address}\n`
+  );
+
+  console.log("Setting snapshotter...\n");
+  const invoke = await new Contract(
+    ABIs.newGol.abi,
+    deployResponse.deploy.contract_address,
+    account
+  ).invoke("set_snapshotter", [deployResponse2.deploy.contract_address]);
+  await provider.waitForTransaction(invoke.transaction_hash);
+  console.log(`Snapshotter set!\n`);
+
+  console.log("Setting allowance...\n");
+
+  /// @dev Using gol abi because it is erc20
+  const paymentToken = new Contract(ABIs.newGol.abi, ADDRESSES.eth, account);
+
+  const multicall = [
+    paymentToken.populate("approve", [
+      deployResponse2.deploy.contract_address,
+      "10000000000",
+    ]),
+  ];
+
+  const multicallResult = await account.execute(multicall);
+  await provider.waitForTransaction(multicallResult.transaction_hash);
+  console.log(`Allowance set!`);
+
+  return [
+    deployResponse.deploy.contract_address,
+    deployResponse2.deploy.contract_address,
+  ];
+};
+
 async function main() {
   try {
     const command = process.argv[2];
@@ -275,6 +340,13 @@ async function main() {
         explorerCommand = `Try minting here:`;
         nextCommand = "Yay done !";
         break;
+      case "MAINNET_MOCKS":
+        const addys = await mainnetMocksForTesting();
+        linkAddress = `${addys[0]}\n\nView GoL2NFT here: https://voyager.online/contract/${addys[1]}`;
+        explorerCommand = `View here GoL2 here:`;
+        nextCommand = "";
+        break;
+
       default:
         console.log("Invalid command. Use MOCK, MIGRATE, or NFT.");
     }

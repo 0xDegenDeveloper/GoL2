@@ -13,7 +13,8 @@
     "migrate": "node ./migration/migration.js MIGRATE",
     "nft": "node ./migration/migration.js NFT",
     "mock_whitelist": "ts-node whitelist/mock_creation.ts",
-    "mint_helper": "node ./migration/migration.js MINT_HELPER"
+    "mint_helper": "node ./migration/migration.js MINT_HELPER",
+    "mainnet_mocks": "node ./migration/migration.js MAINNET_MOCKS"
   },
   "repository": {
     "type": "git",
