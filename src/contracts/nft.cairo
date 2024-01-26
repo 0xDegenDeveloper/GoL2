@@ -32,7 +32,9 @@ trait IERC721Metadata<TContractState> {
     fn name(self: @TContractState) -> felt252;
     fn symbol(self: @TContractState) -> felt252;
     fn token_uri(self: @TContractState, token_id: u256) -> Array<felt252>;
+    fn tokenURI(self: @TContractState, token_id: u256) -> Array<felt252>;
     fn total_supply(self: @TContractState) -> u256;
+    fn totalSupply(self: @TContractState) -> u256;
 }
 
 #[starknet::contract]
@@ -68,10 +70,14 @@ mod GoL2NFT {
     /// (ERC721)
     #[abi(embed_v0)]
     impl ERC721Impl = ERC721Component::ERC721Impl<ContractState>;
+    #[abi(embed_v0)]
+    impl ERC721CamelOnlyImpl = ERC721Component::ERC721CamelOnlyImpl<ContractState>;
     impl ERC721InternalImpl = ERC721Component::InternalImpl<ContractState>;
     /// (SRC5)
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+    #[abi(embed_v0)]
+    impl SRC5CamelImpl = SRC5Component::SRC5CamelImpl<ContractState>;
 
     /// Contract
 
@@ -174,15 +180,16 @@ mod GoL2NFT {
             self.total_supply.read()
         }
 
-        fn token_uri(self: @ContractState, token_id: u256) -> Array<felt252> {
-            let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
-            let generation: felt252 = token_id.try_into().unwrap();
-            let snapshot = gol.view_snapshot(generation);
-            let game_state = gol.view_game(INFINITE_GAME_GENESIS, generation);
-            let cell_array = unpack_game(game_state);
-            let copies = self.game_state_copies.read(game_state);
+        fn totalSupply(self: @ContractState) -> u256 {
+            self.total_supply.read()
+        }
 
-            make_uri_array(token_id, game_state, cell_array, copies, snapshot.timestamp)
+        fn token_uri(self: @ContractState, token_id: u256) -> Array<felt252> {
+            self.token_uri_helper(token_id)
+        }
+
+        fn tokenURI(self: @ContractState, token_id: u256) -> Array<felt252> {
+            self.token_uri_helper(token_id)
         }
     }
 
@@ -337,6 +344,17 @@ mod GoL2NFT {
                 gol.add_snapshot(generation, user_id, game_state, timestamp),
                 'GoL2NFT: Snapshot save failed'
             );
+        }
+
+        fn token_uri_helper(self: @ContractState, token_id: u256,) -> Array<felt252> {
+            let gol = IGoL2Dispatcher { contract_address: self.gol2_addr.read() };
+            let generation: felt252 = token_id.try_into().unwrap();
+            let snapshot = gol.view_snapshot(generation);
+            let game_state = gol.view_game(INFINITE_GAME_GENESIS, generation);
+            let cell_array = unpack_game(game_state);
+            let copies = self.game_state_copies.read(game_state);
+
+            make_uri_array(token_id, game_state, cell_array, copies, snapshot.timestamp)
         }
     }
 }
