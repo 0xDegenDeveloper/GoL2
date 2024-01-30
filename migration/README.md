@@ -147,7 +147,7 @@ The steps for Goerli and Katana are the same, just make sure you adjust your _.e
 
 Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "GOERLI" | "KATANA".
 
-- Deploy a Cairo 0 GoL2 instance with your wallet as the admin and evolve the game 3 times:
+- Deploy a Cairo 0 GoL2 instance with your wallet as the admin and evolve the game 15 times:
 
 ```
 npm run mock
@@ -165,7 +165,7 @@ npm run migrate <freshly deployed GoL2 contract address>
 npm run nft <same GoL2 contract address>
 ```
 
-- Generate a mock whitelist for the 3 pre-migration evolutions mentioned above:
+- Generate a mock whitelist for the pre-migration evolutions mentioned above:
 
 ```
 npm run mock_whitelist <freshly deployed GoL2NFT contract address>
@@ -201,7 +201,13 @@ generation: 4,
 state: 0x18004800760050000000000000000000000000,
 
 timestamp: 4444,
+
+----------------------------------------------------------------
+
+...
 ```
+
+> The rest of these data can be found in [this script](../whitelist/mock_creation.ts)
 
 Now that your GoL2 contract has been migrated, evolve the infinite game once again. Do this by calling the evolve function for this game_id:
 
@@ -209,7 +215,7 @@ Now that your GoL2 contract has been migrated, evolve the infinite game once aga
 0x7300100008000000000000000000000000
 ```
 
-If the migration & deployment were successful, the first post-migration evolution will start at generation 5. To mint this snapshot, go back to the GoL2NFT contract, and pass `5` into the `mint()` function.
+If the migration & deployment were successful, the first post-migration evolution will start at generation 17. To mint this snapshot, go back to the GoL2NFT contract, and pass `17` into the `mint()` function.
 
 ### Mainnet
 
