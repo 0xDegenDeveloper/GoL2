@@ -22,8 +22,8 @@ fn make_uri_array(
     uri.append(token_id.low.to_ascii());
     /// Description
     uri.append('","description":"Snapshot');
-    uri.append('%20of%20GoL2%20Game');
-    uri.append('%20at%20Generation%20%23');
+    uri.append('%20of%20GoL2%20');
+    uri.append('at%20Generation%20%23');
     if token_id.high == 0 {
         uri.append(token_id.low.to_ascii());
     } else {
@@ -46,12 +46,7 @@ fn make_uri_array(
     };
     /// External url
     uri.append('","external_url":');
-    uri.append('"https://gol2.io/snapshot/');
-    if token_id.high != 0 {
-        uri.append(token_id.high.to_ascii());
-    }
-    uri.append(token_id.low.to_ascii());
-    uri.append('",');
+    uri.append('"https://gol2.io",');
     /// Attributes
     make_attributes(ref uri, alive_count, token_id, copies, timestamp);
     uri.append('}');
