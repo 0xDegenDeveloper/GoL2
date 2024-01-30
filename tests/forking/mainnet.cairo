@@ -188,6 +188,7 @@ fn test_post_migration_state() {
     let old_generation = old_gol.get_current_generation(INFINITE_GAME_GENESIS);
     let old_view_game = old_gol
         .view_game(INFINITE_GAME_GENESIS, old_generation - 100); // before loop messes with things
+    let current_gen0 = old_gol.get_current_generation(INFINITE_GAME_GENESIS);
     /// Migrate
     let (new_gol, _, _) = do_migration();
     let new_erc20 = ERC20ABIDispatcher { contract_address: get_gol_address() };
@@ -202,6 +203,7 @@ fn test_post_migration_state() {
     );
     let new_generation = new_gol.get_current_generation(INFINITE_GAME_GENESIS);
     let new_view_game = new_gol.view_game(INFINITE_GAME_GENESIS, new_generation - 100);
+    let current_gen1 = new_gol.migration_generation_marker();
     assert(old_name == new_name, 'name should be the same');
     assert(old_symbol == new_symbol, 'symbol should be the same');
     assert(old_total_supply == new_total_supply, 'total supply should be the same');
@@ -210,6 +212,8 @@ fn test_post_migration_state() {
     assert(old_generation == new_generation, 'generation should be the same');
     assert(old_view_game == new_view_game, 'view game should be the same');
     assert(old_allowance == new_allowance, 'allowance should be the same');
+    assert(current_gen0 == current_gen1, 'marker incorrect');
+    assert(current_gen0.into() > 0_u256, 'marker should not be 0');
 }
 
 #[test]

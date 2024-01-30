@@ -7,6 +7,7 @@ trait IGoL2<TContractState> {
     fn view_game(self: @TContractState, game_id: felt252, generation: felt252) -> felt252;
     fn view_snapshot(self: @TContractState, generation: felt252) -> GoL2::Snapshot;
     fn get_current_generation(self: @TContractState, game_id: felt252) -> felt252;
+    fn migration_generation_marker(self: @TContractState) -> felt252;
     /// Write
     fn initializer(ref self: TContractState);
     fn migrate(ref self: TContractState, new_class_hash: ClassHash);
@@ -214,6 +215,11 @@ mod GoL2 {
         /// Get the current generation of a game.
         fn get_current_generation(self: @ContractState, game_id: felt252) -> felt252 {
             self.current_generation.read(game_id)
+        }
+
+        /// Get the marker for the last pre-migration generation.
+        fn migration_generation_marker(self: @ContractState) -> felt252 {
+            self.migration_generation_marker.read()
         }
 
         /// Writes
