@@ -131,7 +131,7 @@ First install Katana:
 curl -L https://install.dojoengine.org | bash
 ```
 
-> Official installation guide _[here](https://book.dojoengine.org/getting-started/quick-start.html)_
+> Official installation guide _[here](https://book.dojoengine.org/getting-started)_
 
 Once Katana is installed, run a Goerli fork in a background terminal:
 
