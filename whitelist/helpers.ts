@@ -49,16 +49,10 @@ const getHashedLeaf = (generation: string, data: DataStructure): Buffer => {
  * @returns The Merkle tree.
  */
 export const createTree = (data: DataStructure): MerkleTree => {
-  /// Create the leaf hashes for each generation in the data.
   const leaves: Buffer[] = Object.keys(data).map((generation) =>
     getHashedLeaf(generation, data)
   );
-  /**
-   * Re-defined Poseidon hash function.
-   * @dev The bytesToNumberBE and back ensures correct padding when the Merkle Tree
-   * is created. Without the correct padding, leaves with a non-full byte
-   * are dropped (odd hex-lengths lose their last nible).
-   */
+
   const specialHash = (input: Buffer[]): Buffer =>
     Buffer.from(
       numberToBytesBE(
@@ -68,16 +62,8 @@ export const createTree = (data: DataStructure): MerkleTree => {
     );
 
   return new MerkleTree(leaves, specialHash, {
-    /// @dev Allows us to break apart the pre-buffered value into its components.
-    concatenator: (buffers: Buffer[]): Buffer[] => {
-      return buffers;
-    },
-    /// @dev Fills the extra leaves with 0x0 to complete the Tree.
-    fillDefaultHash: (): Buffer => {
-      return Buffer.from([0x0]);
-    },
-    /// @dev Sorts the leaves to ensure the logic matches Alexandria's implementation.
-    /// @dev Located here: https://github.com/keep-starknet-strange/alexandria/blob/main/src/merkle_tree/README.md
+    concatenator: (buffers: Buffer[]): Buffer[] => buffers,
+    fillDefaultHash: (): Buffer => Buffer.from([0x0]),
     sort: true,
   });
 };
@@ -88,7 +74,6 @@ export const createTree = (data: DataStructure): MerkleTree => {
  * @param generation The generation to get the proof for.
  * @returns The proof as an array of strings representing felt252s.
  */
-
 const getProof = (
   tree: MerkleTree,
   generation: string,
@@ -109,11 +94,8 @@ export const getProofs = (
   tree: MerkleTree,
   generations: string[],
   data: DataStructure
-): string[][] =>
-  generations.map((generation) => getProof(tree, generation, data));
+): string[][] => generations.map((generation) => getProof(tree, generation, data));
 
 export const makeKeys = (start: number, end: number): string[] => {
-  return Array.from({ length: end - start + 1 }, (_, index) =>
-    (start + index).toString()
-  );
+  return Array.from({ length: end - start + 1 }, (_, index) => (start + index).toString());
 };
