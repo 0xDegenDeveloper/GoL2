@@ -94,8 +94,11 @@ export const getProofs = (
   tree: MerkleTree,
   generations: string[],
   data: DataStructure
-): string[][] => generations.map((generation) => getProof(tree, generation, data));
+): string[][] =>
+  generations.map((generation) => getProof(tree, generation, data));
 
 export const makeKeys = (start: number, end: number): string[] => {
-  return Array.from({ length: end - start + 1 }, (_, index) => (start + index).toString());
+  return Array.from({ length: end - start + 1 }, (_, index) =>
+    (start + index).toString()
+  );
 };
