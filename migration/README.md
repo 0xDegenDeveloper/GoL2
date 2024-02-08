@@ -217,6 +217,16 @@ Now that your GoL2 contract has been migrated, evolve the infinite game once aga
 
 If the migration & deployment were successful, the first post-migration evolution will start at generation 17. To mint this snapshot, go back to the GoL2NFT contract, and pass `17` into the `mint()` function.
 
+### Mainnet (Practice)
+
+Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "MAINNET".
+
+- Deploy a Mainnet GoL2 instance (Cairo 1)
+
+```
+npm run mainnet_mocks
+```
+
 ### Mainnet
 
 Make sure you adjust your _.env_ file **ENVIRONMENT** variable to "MAINNET", and check that the wallet address and private key are the ones for the admin wallet.

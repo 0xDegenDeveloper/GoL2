@@ -6,7 +6,8 @@ import {
   Snapshot,
 } from "../helpers";
 import * as fs from "fs";
-import * as rawData from "../whitelist.json";
+// import * as rawData from "../whitelist.json";
+import * as rawData from "../gol2-whitelist.json";
 // import * as rawData from "../mock.json";
 
 /// Load in whitelist.

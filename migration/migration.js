@@ -275,8 +275,8 @@ const mainnetMocksForTesting = async () => {
       "0x47616D65206F66204C696665204E4654", // "Game of Life NFT"
       "0x476F4C324E4654", // "GoL2NFT"
       deployResponse.deploy.contract_address,
-      ENVIRONMENT == "MAINNET" ? ADDRESSES.usdc : ADDRESSES.eth, // cost is 1 USDC on mainnet, 0.000000001 ETH on goerli
-      ENVIRONMENT == "MAINNET" ? 1000000 : 1000000000, // 1.000000 USDC on mainnet, 1 gwei (10^-9 ether) on goerli
+      ADDRESSES.eth, // nft mint costs eth
+      1000000000000000, // nft mint costs 0.001 ETH
       0,
       "0x0595d834a768d680188fce9858f850eeaf8926f86b54238e30fecc53f6317962", // root hash, todo: update when wl complete
     ],
