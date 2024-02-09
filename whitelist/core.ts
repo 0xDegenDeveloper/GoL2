@@ -4,11 +4,9 @@ import {
   makeKeys,
   DataStructure,
   Snapshot,
-} from "../helpers";
+} from "./helpers";
 import * as fs from "fs";
-// import * as rawData from "../whitelist.json";
-import * as rawData from "../gol2-whitelist.json";
-// import * as rawData from "../mock.json";
+import * as rawData from "./whitelist.json";
 
 /// Load in whitelist.
 const data: DataStructure = rawData;

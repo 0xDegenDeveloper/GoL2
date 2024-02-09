@@ -1,7 +1,5 @@
 import { config } from "dotenv";
-import { createTree, getProofs, DataStructure } from "./helpers";
-import { poseidonHashMany } from "@scure/starknet";
-import { num } from "starknet";
+import { createTree, getProofs, DataStructure } from "../whitelist/helpers";
 
 const env: any = config().parsed;
 

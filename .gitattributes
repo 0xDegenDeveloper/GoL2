@@ -1,0 +1,2 @@
+whitelist/whitelist.json filter=lfs diff=lfs merge=lfs -text
+whitelist/proofs.json filter=lfs diff=lfs merge=lfs -text

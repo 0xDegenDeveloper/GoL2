@@ -12,7 +12,7 @@
     "mock": "node ./migration/migration.js MOCK",
     "migrate": "node ./migration/migration.js MIGRATE",
     "nft": "node ./migration/migration.js NFT",
-    "mock_whitelist": "ts-node whitelist/mock_creation.ts",
+    "mock_whitelist": "ts-node ./migration/create_mock_whitelist.ts",
     "mint_helper": "node ./migration/migration.js MINT_HELPER",
     "mainnet_mocks": "node ./migration/migration.js MAINNET_MOCKS"
   },
