@@ -39,4 +39,6 @@ fn whitelist_mint(generation: felt252, state: felt252, timestamp: u64, proof: Ar
 
 ## Off-chain:
 
-Using Typescript, the whitelist's root hash was calculated. A bunch of _[these scripts](./scripts/example.ts)_ were used to fetch the proofs for each leaf in the tree.
+Using Typescript, the whitelist's root hash was calculated. A bunch of _[these scripts](./example.ts)_ were used to fetch the proofs for each leaf in the tree.
+
+If you were curious, we ran 3 batches of 8 scripts in parallel to speed this process up. Ecah script fetched ~25,000 proofs. The total time it took to fetch all ~500,000 proofs was ~1.5 hours (M3 Pro Chip).

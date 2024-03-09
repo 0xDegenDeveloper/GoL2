@@ -151,7 +151,6 @@ mod GoL2NFT {
     }
 
     /// External Functions
-
     #[external(v0)]
     impl UpgradeableImpl of IUpgradeable<ContractState> {
         /// Write
